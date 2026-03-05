@@ -1,18 +1,20 @@
-#[derive(Debug, Clone)]
+use super::ids::AgentId;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Agent {
-    pub id: String,
+    pub id: AgentId,
     pub name: String,
 }
 
 impl Agent {
-    pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {
+    pub fn new(id: AgentId, name: impl Into<String>) -> Self {
         Self {
-            id: id.into(),
+            id,
             name: name.into(),
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        !self.id.is_empty() && !self.name.is_empty()
+        !self.name.trim().is_empty()
     }
 }
