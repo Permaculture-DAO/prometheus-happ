@@ -94,6 +94,7 @@ These reflect the current implementation history and should not be casually rest
 
 ---
 
+```md
 ## Build and test
 
 ### Prerequisites
@@ -102,41 +103,67 @@ These reflect the current implementation history and should not be casually rest
 
 ### Build
 
-```bash
-cargo build
+    cargo build
 
-cargo test
+### Test
 
-Notes
-The implementation should be interpreted as part of a pilot-first stack.
+    cargo test
+
+### Notes
+
+The implementation should be interpreted as part of a pilot-first stack.  
 Behavioral expectations are also defined in the related specification and mock repositories listed below.
-Related repositories
-prometheus-pilot-handoff-pack
+
+---
+
+## Related repositories
+
+### `prometheus-pilot-handoff-pack`
 Canonical implementation contract for the Prometheus Rigenera pilot.
-prometheus-mock-backend
+
+### `prometheus-mock-backend`
 Executable behavioral specification for the Prometheus pilot backend.
-prometheus-ops-docs
+
+### `prometheus-ops-docs`
 Operational SOPs, runbooks, troubleshooting, and execution discipline.
-prometheus-evaluation-stack
+
+### `prometheus-evaluation-stack`
 Scoring, reporting, and GO / NO_GO / MANUAL_REVIEW decisioning.
+
+---
 Contributing
+
 We welcome contributions from people aligned with the project’s principles and implementation discipline.
-Please read CONTRIBUTING.md before contributing.
+
+Please read CONTRIBUTING.md
+ before contributing.
 It contains governance expectations, constitutional guidelines, and commit-signing instructions.
+
 Release discipline
+
 This repository preserves implementation continuity, release history, and provenance.
+
 Canonical releases and integrity-related references should be treated as part of the project’s formal technical record.
+
 Whitepaper alignment
+
 Whitepaper Version: v1.0.2
+
 This implementation should remain aligned with the canonical whitepaper version unless an explicit architectural update is approved and documented.
+
 Current status
+
 This repository contains real implementation work and active structural substance.
+
 Prometheus is being developed with a pilot-first discipline, which means:
+
 explicit scope before expansion
 behavior before abstraction
 validation before execution
 operational clarity before scale
 implementation fidelity before architecture drift
 Founder and context
-Prometheus and the h•eart•h intelligence initiative were founded by Uwohali⁠�.
+
+Prometheus and the h•eart•h intelligence initiative were founded by Uwohali.
+
 Canonical project development lives under the Permaculture-DAO organization.
