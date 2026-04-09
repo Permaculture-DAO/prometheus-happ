@@ -170,6 +170,18 @@ Prometheus is being developed with a **pilot-first discipline**, which means:
 
 ---
 
+## Canonical texts
+
+The Prometheus ecosystem is governed by layered canonical documentation.
+
+For a compressed constitutional overview of the ecosystem, see:
+
+- `docs/references/PROMETHEUS_CANON_12_PAGES.md`
+
+This text complements the canonical white paper and does not expand the bounded scope of the current pilot implementation.
+
+---
+
 ## Founder and context
 
 Prometheus and the h•eart•h intelligence initiative were founded by [`Uwohali`](https://github.com/Uwohali).

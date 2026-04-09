@@ -308,7 +308,24 @@ If the answer to several of these is “no”, the PR should not be merged.
 
 ---
 
-## 16. Founder and canonical context
+## 16. Canonical reference discipline
+
+Before proposing changes that affect architectural meaning, contributors should read:
+
+1. the repository README
+2. `docs/references/CANONICAL_DOCUMENTS.md`
+3. `docs/references/PROMETHEUS_CANON_12_PAGES.md`
+
+Important:
+- the Canon is a constitutional reference text
+- it does not expand current pilot scope by itself
+- runtime implementation must remain consistent with bounded pilot scope
+- proposed changes affecting semantics, validation logic, or subsystem boundaries must be made explicitly and reviewably
+
+---
+
+
+## 17. Founder and canonical context
 
 Prometheus and the h•eart•h intelligence initiative were founded by [`Uwohali`](https://github.com/Uwohali).
 
