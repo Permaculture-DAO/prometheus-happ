@@ -1,0 +1,6 @@
+manifest_version: "0"
+name: hearth_prometheus_web
+happ:
+  path: "./hearth_prometheus.happ"
+ui:
+  path: "./ui.zip"
