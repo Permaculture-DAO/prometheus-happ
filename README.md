@@ -182,6 +182,20 @@ This text complements the canonical white paper and does not expand the bounded 
 
 ---
 
+## Canonical document authority
+
+Repository-bounded implementation in `prometheus-happ` does not redefine Prometheus constitutional meaning.
+
+Canonical release freezes of the Prometheus document system are maintained in:
+
+- [`prometheus-canonicals`](https://github.com/Permaculture-DAO/prometheus-canonicals)
+
+Current canonical freeze reference:
+
+- `releases/2026-04-09/`
+
+---
+
 ## Founder and context
 
 Prometheus and the h•eart•h intelligence initiative were founded by [`Uwohali`](https://github.com/Uwohali).
