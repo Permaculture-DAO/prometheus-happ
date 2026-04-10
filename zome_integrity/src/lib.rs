@@ -1,6 +1,14 @@
-use hdk::prelude::*;
+use hdi::prelude::*;
 
-#[hdk_extern]
-fn init() -> ExternResult<InitCallbackResult> {
-    Ok(InitCallbackResult::Pass)
+#[hdk_entry_helper]
+#[derive(Clone)]
+pub struct MessageEntry {
+    pub content: String,
+}
+
+#[hdk_entry_types]
+#[unit_enum(UnitEntryTypes)]
+pub enum EntryTypes {
+    #[entry_type(visibility = "public")]
+    Message(MessageEntry),
 }

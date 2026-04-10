@@ -7,5 +7,6 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-hdk = "0.4"
-serde = "1.0"
+hdi = { workspace = true }
+serde = { workspace = true }
+holochain_serialized_bytes = "=0.0.56"

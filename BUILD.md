@@ -1,37 +1,58 @@
-# Prometheus hApp Build Notes
+# Prometheus hApp Build and Runtime Guide
 
-## Prerequisites
-- Rust toolchain installed
-- target `wasm32-unknown-unknown`
-- `hc` CLI available
-- `lair-keystore` available
+## Purpose
 
-## Build WASM zomes
-cargo build --release --target wasm32-unknown-unknown -p zome_integrity -p zome_coordinator
+This document defines the canonical build flow, artifact flow, and supported runtime profiles for the Prometheus Holochain application.
 
-## Copy WASM into DNA bundle structure
-mkdir -p dnas/hearth/wasm
-cp target/wasm32-unknown-unknown/release/zome_integrity.wasm dnas/hearth/wasm/
-cp target/wasm32-unknown-unknown/release/zome_coordinator.wasm dnas/hearth/wasm/
+The signed artifacts are runtime-agnostic.
+They may be executed through:
 
-## Pack DNA
-mkdir -p workdir/dna workdir/app
-hc dna pack dnas/hearth -o workdir/dna/hearth.dna
+1. direct `hc sandbox` commands
+2. persistent `tmux`-managed CLI runtime
+3. Holochain Launcher / Moss GUI runtime
 
-## Pack hApp
-Current stable path:
-cp workdir/dna/hearth.dna dnas/hearth/hearth.dna
-zip -j workdir/app/hearth_prometheus.happ happ.yaml dnas/hearth/hearth.dna
+The artifact set remains the same across all execution modes.
 
-## Artifact sync
-Artifacts are copied to:
-D:\hearth intelligence – Prometheus Sovereign Syntropy\documenti\Holochain\artifacts
+---
 
-## Signatures
-After artifact replacement, regenerate:
-- SHA256_SUMS_HOLOCHAIN.txt
-- per-file .sha256
-- detached signature .asc
+## Repository scope
 
-## Note
-`hc app pack` under the current local CLI/tooling does not produce the preferred distributable artifact format for this workflow.
+Primary workspace:
+
+- `~/prometheus-happ`
+
+Core files:
+
+- `Cargo.toml`
+- `dnas/hearth/dna.yaml`
+- `happ.yaml`
+- `web-happ.yaml`
+
+Build outputs:
+
+- `workdir/dna/hearth.dna`
+- `workdir/app/hearth_prometheus.happ`
+
+Deployment mirror on D drive:
+
+- `/mnt/d/hearth intelligence – Prometheus Sovereign Syntropy/documenti/Holochain`
+
+---
+
+## Build prerequisites
+
+Required tools:
+
+- Rust toolchain
+- `wasm32-unknown-unknown` target
+- `hc` CLI
+- `lair-keystore`
+- `tmux` (optional but recommended for persistent CLI runtime)
+
+Example checks:
+
+```bash
+command -v cargo
+command -v hc
+command -v lair-keystore
+rustup target list --installed | grep wasm32-unknown-unknown

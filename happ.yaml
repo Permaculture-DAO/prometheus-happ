@@ -7,7 +7,7 @@ roles:
       strategy: create
       deferred: false
     dna:
-      bundled: "hearth.dna"
+      path: "./hearth.dna"
       properties: ~
       uuid: ~
       version: ~
