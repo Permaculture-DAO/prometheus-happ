@@ -30,3 +30,13 @@ workdir/
 *.log
 *.pid
 *.lock
+
+# Build outputs
+workdir/
+*.dna
+
+# Zome build artifacts
+dnas/**/wasm/*.wasm
+
+# Keep source manifests tracked
+!dnas/**/dna.yaml
