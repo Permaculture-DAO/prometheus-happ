@@ -1,16 +1,14 @@
-manifest_version: "1"
+manifest_version: "0"
 name: hearth_prometheus
 description: ~
 roles:
-  - name: hearth
+  - name: hearth_role
     provisioning:
       strategy: create
       deferred: false
     dna:
-      bundled: ./dnas/hearth/hearth.dna
-      modifiers:
-        network_seed: ~
-        properties: ~
-        origin_time: ~
+      bundled: "hearth.dna"
+      properties: ~
+      uuid: ~
       version: ~
       clone_limit: 0
