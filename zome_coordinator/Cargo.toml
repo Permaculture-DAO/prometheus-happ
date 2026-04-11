@@ -11,3 +11,4 @@ hdk = { workspace = true }
 serde = { workspace = true }
 holochain_serialized_bytes = "=0.0.56"
 zome_integrity = { path = "../zome_integrity" }
+getrandom = { version = "0.3.4", features = ["wasm_js"] }

@@ -1,8 +1,27 @@
 use hdk::prelude::*;
+use std::collections::HashSet;
 use zome_integrity::{EntryTypes, MessageEntry};
 
 #[hdk_extern]
 fn init() -> ExternResult<InitCallbackResult> {
+    let zome_name = zome_info()?.name;
+let granted_functions = GrantedFunctions::Listed(HashSet::from([
+    (zome_name.clone(), FunctionName::from("hello")),
+    (zome_name.clone(), FunctionName::from("ping")),
+    (zome_name.clone(), FunctionName::from("get_status")),
+    (zome_name.clone(), FunctionName::from("list_messages")),
+    (zome_name.clone(), FunctionName::from("set_message")),
+    (zome_name, FunctionName::from("get_message")),
+    ]));
+
+    let grant = ZomeCallCapGrant {
+        tag: "prometheus-local-dev-bridge".into(),
+        access: CapAccess::Unrestricted,
+        functions: granted_functions,
+    };
+
+    create_cap_grant(grant)?;
+
     Ok(InitCallbackResult::Pass)
 }
 
