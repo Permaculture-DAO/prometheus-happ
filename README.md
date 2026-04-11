@@ -1,20 +1,17 @@
 # Prometheus hApp (Rust / Holochain)
 
 > **Canonical repository of the Prometheus pilot hApp under the `Permaculture-DAO` organization.**  
-> Founder and original authorship remain associated with [`Uwohali`](https://github.com/Uwohali).
 
-This repository contains the **Holochain-native backend implementation** of the Prometheus pilot hApp.
+This repository contains the Holochain-native backend implementation of the Prometheus pilot hApp.
 
 It serves as the technical core of the Prometheus pilot stack and is intended to preserve:
 
 - pilot-first scope
 - semantic fidelity to the canonical domain model
 - validation discipline
-- bridge execution safety
+- backend runtime correctness
 - auditability
 - future extensibility without contaminating pilot correctness
-
----
 
 ## Repository role
 
@@ -32,8 +29,6 @@ This repository is not the place where pilot scope is redefined.
 
 Application-facing bridge logic and frontend console behavior are maintained in dedicated companion repositories.
 
----
-
 ## Runtime topology
 
 The current Prometheus pilot stack is intentionally separated across bounded repositories.
@@ -47,8 +42,6 @@ Companion runtime-facing repositories include:
 
 This separation exists to preserve backend correctness, pilot scope clarity, and architectural auditability.
 
----
-
 ## Canonical status
 
 This repository is the canonical implementation repository for the Prometheus pilot hApp.
@@ -60,11 +53,10 @@ If ambiguity exists between implementation and surrounding documentation, the fo
 - `prometheus-ops-docs`
 - `prometheus-evaluation-stack`
 
----
-
 ## Scope
 
 ### Included
+
 - Rust / Holochain backend implementation
 - zome logic
 - integrity and coordinator structures
@@ -73,6 +65,7 @@ If ambiguity exists between implementation and surrounding documentation, the fo
 - release and provenance continuity
 
 ### Excluded
+
 - frontend/UI
 - token market layer
 - full DAO governance implementation
@@ -81,19 +74,12 @@ If ambiguity exists between implementation and surrounding documentation, the fo
 - sensor hardware deployment
 - broader platform redesign
 
----
-
 ## Canonical specification
 
 This hApp implements the backend rules defined in the canonical Prometheus specification.
 
-Whitepaper repository:  
-[`hearth-prometheus-whitepaper`](https://github.com/Uwohali/hearth-prometheus-whitepaper)
-
-Canonical whitepaper release:  
-[`v1.0.2`](https://github.com/Uwohali/hearth-prometheus-whitepaper/releases/tag/v1.0.2)
-
----
+Whitepaper repository: `hearth-prometheus-whitepaper`  
+Canonical whitepaper release: `v1.0.2`
 
 ## Repository structure
 
@@ -109,11 +95,10 @@ Core implementation artifacts currently include:
 
 These reflect the current implementation history and should not be casually restructured without explicit architectural review.
 
----
-
 ## Build and test
 
 ### Prerequisites
+
 - Rust toolchain
 - Holochain development environment
 
@@ -180,9 +165,7 @@ Canonical releases and integrity-related references should be treated as part of
 
 ## Whitepaper alignment
 
-Whitepaper Version: `v1.0.2`
-
-This implementation should remain aligned with the canonical whitepaper version unless an explicit architectural update is approved and documented.
+This implementation should remain aligned with canonical whitepaper release `v1.0.2` unless an explicit architectural update is approved and documented.
 
 ---
 
@@ -197,6 +180,8 @@ This confirms the current separation of concerns across:
 - `prometheus-console` as frontend interaction layer
 
 This repository should therefore be interpreted as the backend core of a layered pilot stack, not as a monolithic application repository.
+
+This runtime validation clarifies current implementation topology and does not expand bounded pilot scope.
 
 ---
 
