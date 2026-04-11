@@ -18,17 +18,34 @@ It serves as the technical core of the Prometheus pilot stack and is intended to
 
 ## Repository role
 
-This repository is the **implementation home** of the Prometheus pilot backend.
+This repository is the implementation home of the Prometheus pilot backend.
 
 It is responsible for:
 
 - Holochain DNA and zome implementation
 - canonical entity handling
 - validation callbacks
-- bridge control behavior
+- pilot backend runtime behavior
 - pilot deployment hardening
 
-This repository is **not** the place where pilot scope is redefined.
+This repository is not the place where pilot scope is redefined.
+
+Application-facing bridge logic and frontend console behavior are maintained in dedicated companion repositories.
+
+---
+
+## Runtime topology
+
+The current Prometheus pilot stack is intentionally separated across bounded repositories.
+
+This repository remains the canonical Holochain-native backend implementation layer.
+
+Companion runtime-facing repositories include:
+
+- `prometheus-bridge` — application-facing HTTP/API bridge in front of the Holochain websocket path
+- `prometheus-console` — frontend console and public-facing application UI for the pilot stack
+
+This separation exists to preserve backend correctness, pilot scope clarity, and architectural auditability.
 
 ---
 
@@ -110,8 +127,13 @@ These reflect the current implementation history and should not be casually rest
 
 ### Notes
 
-The implementation should be interpreted as part of a pilot-first stack.  
+The implementation should be interpreted as part of a pilot-first stack.
+
 Behavioral expectations are also defined in the related specification and mock repositories listed below.
+
+For application-facing integration, the pilot runtime is expected to be reached through the websocket/app-interface path used by the bridge layer.
+
+CLI-oriented local zome-call workflows may still be useful for debugging, but they should not be treated as the canonical frontend integration path for the pilot console.
 
 ---
 
@@ -128,6 +150,14 @@ Operational SOPs, runbooks, troubleshooting, and execution discipline.
 
 ### `prometheus-evaluation-stack`
 Scoring, reporting, and GO / NO_GO / MANUAL_REVIEW decisioning.
+
+### `prometheus-bridge`
+
+Application-facing HTTP/API bridge for the Prometheus pilot runtime.
+
+### `prometheus-console`
+
+Frontend console repository for the Prometheus pilot application UI.
 
 ---
 
@@ -153,6 +183,20 @@ Canonical releases and integrity-related references should be treated as part of
 Whitepaper Version: `v1.0.2`
 
 This implementation should remain aligned with the canonical whitepaper version unless an explicit architectural update is approved and documented.
+
+---
+
+## Current runtime integration status
+
+The pilot backend has validated a live websocket/app-interface integration path for runtime-facing message flow.
+
+This confirms the current separation of concerns across:
+
+- `prometheus-happ` as canonical backend runtime layer
+- `prometheus-bridge` as application-facing bridge layer
+- `prometheus-console` as frontend interaction layer
+
+This repository should therefore be interpreted as the backend core of a layered pilot stack, not as a monolithic application repository.
 
 ---
 
