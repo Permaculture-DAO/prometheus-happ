@@ -43,3 +43,23 @@ fn get_message(action_hash: ActionHash) -> ExternResult<Option<String>> {
 
     Ok(Some(message.content))
 }
+
+#[hdk_extern]
+fn list_messages(_: ()) -> ExternResult<Vec<String>> {
+    let records = query(ChainQueryFilter::new().include_entries(true))?;
+
+    let mut messages = Vec::new();
+
+    for record in records {
+        let maybe_message: Option<MessageEntry> = record
+            .entry()
+            .to_app_option()
+            .map_err(|e| wasm_error!(WasmErrorInner::Guest(e.to_string())))?;
+
+        if let Some(message) = maybe_message {
+            messages.push(message.content);
+        }
+    }
+
+    Ok(messages)
+}
