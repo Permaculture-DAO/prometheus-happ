@@ -10,3 +10,4 @@ crate-type = ["cdylib", "rlib"]
 hdi = { workspace = true }
 serde = { workspace = true }
 holochain_serialized_bytes = "=0.0.56"
+getrandom = { version = "0.3.4", features = ["wasm_js"] }
