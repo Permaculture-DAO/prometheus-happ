@@ -8,7 +8,6 @@ Thumbs.db
 # Rust
 target/
 Cargo.lock.bak
-
 # Holochain / build artifacts
 *.dna
 *.happ
@@ -18,19 +17,22 @@ Cargo.lock.bak
 .holochain/
 sandbox/
 workdir/
-
 # Node / frontend artifacts
 node_modules/
 dist/
 build/
 .cache/
-
 # Environment and logs
 .env
 .env.*
 !.env.example
 *.log
-
 # Temporary files
 tmp/
 temp/
+# Holochain generated artifacts
+# Legacy/generated signature artifacts
+*.asc
+*.sha256
+# Bundled UI artifacts
+ui.zip

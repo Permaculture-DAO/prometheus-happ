@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "zome_integrity",
+    "zome_coordinator",
+    "zomes/coordinator/hearth_zome",
+]

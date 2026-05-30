@@ -1,0 +1,14 @@
+manifest_version: "0"
+name: hearth
+integrity:
+  network_seed: ~
+  properties: ~
+  zomes:
+    - name: zome_integrity
+      path: ./wasm/zome_integrity.wasm
+coordinator:
+  zomes:
+    - name: zome_coordinator
+      path: ./wasm/zome_coordinator.wasm
+      dependencies:
+        - name: zome_integrity
