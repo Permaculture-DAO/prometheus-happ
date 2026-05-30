@@ -36,3 +36,9 @@ temp/
 *.sha256
 # Bundled UI artifacts
 ui.zip
+# Local packaging audit scratch
+_ARTIFACT_AUDIT_OLD_NEW/
+_PACK_AUDIT/
+_PACK_FIX_AUDIT/
+_PACK_FIX_AUDIT_WEB/
+*.bak_before_manifest_v0_fix
