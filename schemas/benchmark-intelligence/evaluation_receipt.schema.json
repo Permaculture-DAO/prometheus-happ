@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prometheus.local/schemas/evaluation_receipt.schema.json",
+  "title": "Prometheus Evaluation Receipt",
+  "type": "object",
+  "required": [
+    "evaluation_id",
+    "subject_id",
+    "subject_type",
+    "protocol_id",
+    "protocol_version",
+    "final_score",
+    "confidence",
+    "decision",
+    "authority_boundary",
+    "issued_at"
+  ],
+  "properties": {
+    "evaluation_id": { "type": "string" },
+    "subject_id": { "type": "string" },
+    "subject_type": {
+      "type": "string",
+      "enum": ["personal", "project", "node", "team", "organization"]
+    },
+    "protocol_id": { "type": "string" },
+    "protocol_version": { "type": "string" },
+    "final_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "audit_grade"]
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["GO", "NO_GO", "MANUAL_REVIEW", "CONDITIONAL_GO", "REASSESS_AFTER_EVIDENCE"]
+    },
+    "authority_boundary": {
+      "type": "string",
+      "const": "evaluation_not_certification"
+    },
+    "evidence_manifest_ref": { "type": "string" },
+    "review_mode": {
+      "type": "string",
+      "enum": ["automated", "manual", "hybrid"]
+    },
+    "issued_at": { "type": "string" },
+    "notes": { "type": "string" }
+  }
+}
