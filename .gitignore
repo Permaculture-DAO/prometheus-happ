@@ -43,3 +43,5 @@ _PACK_FIX_AUDIT/
 _PACK_FIX_AUDIT_WEB/
 *.bak_before_manifest_v0_fix
 .runtime/
+bridge/node_modules/
+bridge/.env
