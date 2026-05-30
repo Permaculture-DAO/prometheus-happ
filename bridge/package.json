@@ -1,0 +1,13 @@
+{
+  "name": "prometheus-runtime-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "health": "curl -s http://127.0.0.1:8787/health | python3 -m json.tool"
+  },
+  "dependencies": {
+    "express": "4.19.2"
+  }
+}
