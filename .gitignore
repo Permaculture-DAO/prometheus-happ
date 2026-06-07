@@ -45,3 +45,5 @@ _PACK_FIX_AUDIT_WEB/
 .runtime/
 bridge/node_modules/
 bridge/.env
+bridge/.hc_auth
+.hc_auth
