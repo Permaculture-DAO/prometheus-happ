@@ -11,6 +11,8 @@ pub mod ohe;
 pub mod mrv;
 pub mod claim;
 pub mod no_double_counting;
+pub mod entry_types;
+pub use entry_types::{EntryTypes, UnitEntryTypes};
 
 #[hdk_extern]
 fn init() -> ExternResult<InitCallbackResult> {
