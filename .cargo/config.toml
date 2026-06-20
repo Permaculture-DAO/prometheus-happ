@@ -1,2 +1,7 @@
 [target.wasm32-unknown-unknown]
-rustflags = ['--cfg', 'getrandom_backend="unsupported"']
+# getrandom: no host entropy in the zome sandbox.
+# --allow-undefined: Holochain host functions (__hc__*) are provided by the
+# conductor at runtime and must remain wasm imports, not be resolved at link
+# time. Newer rust-lld errors on undefined symbols by default; this restores the
+# import behaviour the zome build relies on.
+rustflags = ['--cfg', 'getrandom_backend="unsupported"', '-C', 'link-arg=--allow-undefined']
