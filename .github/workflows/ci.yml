@@ -1,0 +1,21 @@
+name: happ-ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: wasm build (workspace)
+        run: cargo build --target wasm32-unknown-unknown --workspace
+      - name: unit tests (integrity domain)
+        run: cargo test -p zome_integrity
+      # .cargo/config.toml carries -C link-arg=--allow-undefined so the conductor
+      # host functions (__hc__*) remain wasm imports. Conductor smoke test is a
+      # local/manual runbook step (ops-docs), not run in CI.
