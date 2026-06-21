@@ -146,11 +146,12 @@ pub enum EntryTypes {
     Claim(ClaimEntry),
 }
 
-// No links defined yet; an (empty) link-types enum is needed for the flattened
-// generic parameter.
+// Link types. SubjectToEvidence links a subject anchor (e.g. an OHE id) to each
+// MRV evidence record, so the admissibility gate can run over a subject's actual
+// chain-persisted evidence (not just a passed-in list).
 #[hdk_link_types]
 pub enum LinkTypes {
-    Placeholder,
+    SubjectToEvidence,
 }
 
 #[hdk_extern]
