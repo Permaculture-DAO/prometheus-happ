@@ -1,0 +1,18 @@
+[package]
+name = "integration_tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Host-only conductor tests (sweettest). Excluded from the workspace so the wasm
+# zome build never pulls the holochain conductor.
+[dependencies]
+
+# holochain 0.6.1 is not on crates.io (binary comes from a non-crates channel);
+# use the latest published 0.6.x (0.6.0). ABI is compatible within the 0.6 patch
+# line; if a mismatch shows at runtime, switch to a git tag = holochain-0.6.1.
+[dev-dependencies]
+holochain = { version = "0.6", features = ["sweettest"] }
+holo_hash = "0.6"
+tokio = { version = "1", features = ["full"] }
+serde_json = "1"

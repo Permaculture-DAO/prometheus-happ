@@ -36,6 +36,9 @@ temp/
 *.sha256
 # Bundled UI artifacts
 ui.zip
+# Release checksum/sig assets (published, not committed)
+SHA256SUMS.txt
+SHA256_SUMS.txt
 # Local packaging audit scratch
 _ARTIFACT_AUDIT_OLD_NEW/
 _PACK_AUDIT/
