@@ -1,5 +1,6 @@
 use hdk::prelude::*;
 use zome_integrity::entry_types::{ClaimEntry, EntryTypes, MrvEvidenceEntry, OheEntry};
+use zome_integrity::admissibility::admissible;
 
 #[hdk_extern]
 fn init() -> ExternResult<InitCallbackResult> {
@@ -36,4 +37,41 @@ pub fn create_claim(claim: ClaimEntry) -> ExternResult<ActionHash> {
 #[hdk_extern]
 pub fn get_record(action_hash: ActionHash) -> ExternResult<Option<Record>> {
     get(action_hash, GetOptions::default())
+}
+
+// ---------------------------------------------------------------------------
+// The evidence spine: assess ADMISSIBILITY (binary), never value.
+// Given a legal-gate decision and a subject's MRV evidence, returns whether the
+// evidence may proceed to off-runtime value-analysis. Returns a bool — there is
+// no value field, no PRU, no amount. value stays prose-only, suspended at zero.
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AssessInput {
+    pub legal_gate: bool,
+    pub confidence_threshold: f64,
+    pub require_reviewer: bool,
+    pub evidence: Vec<MrvEvidenceEntry>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AssessResult {
+    /// Binary admissibility (LegalGate ∧ MRVGate). NOT a value.
+    pub admissible: bool,
+    pub authority_boundary: String,
+}
+
+#[hdk_extern]
+pub fn assess_admissibility(input: AssessInput) -> ExternResult<AssessResult> {
+    let domain: Vec<_> = input.evidence.iter().map(|e| e.to_domain()).collect();
+    let ok = admissible(
+        input.legal_gate,
+        &domain,
+        input.confidence_threshold,
+        input.require_reviewer,
+    );
+    Ok(AssessResult {
+        admissible: ok,
+        authority_boundary: "admissibility_only_no_value".to_string(),
+    })
 }

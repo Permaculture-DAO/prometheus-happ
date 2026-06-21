@@ -69,7 +69,7 @@ pub struct MrvEvidenceEntry {
 }
 
 impl MrvEvidenceEntry {
-    fn to_domain(&self) -> MrvEvidence {
+    pub fn to_domain(&self) -> MrvEvidence {
         use crate::mrv::EvidenceSource;
         MrvEvidence {
             id: self.id.clone(),

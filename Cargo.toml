@@ -4,3 +4,6 @@ members = [
     "zome_coordinator",
     "zomes/coordinator/hearth_zome",
 ]
+# integration_tests is a host-only sweettest crate (depends on the full holochain
+# conductor); excluded so the wasm zome build is never affected by it.
+exclude = ["integration_tests"]
