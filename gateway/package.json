@@ -1,0 +1,17 @@
+{
+  "name": "prometheus-gateway",
+  "version": "0.1.0-genesis",
+  "private": true,
+  "type": "module",
+  "description": "Sensor -> Holochain ingest adapter (MQTT/Mosquitto -> create_evidence). Runs on the gateway (e.g. Raspberry Pi 5), local-first.",
+  "scripts": {
+    "start": "node src/ingest.mjs",
+    "dry-run": "PROMETHEUS_DRY_RUN=1 node src/ingest.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@holochain/client": "^0.19.0",
+    "mqtt": "^5.10.0"
+  },
+  "license": "UNLICENSED"
+}
