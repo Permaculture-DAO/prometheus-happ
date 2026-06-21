@@ -1,10 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>My Holochain App</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>h•eart•h Prometheus — Genesis Runtime</title>
+  <style>
+    :root {
+      --ink: #1c1a17;
+      --muted: #6b655c;
+      --line: #e4dfd6;
+      --bg: #faf8f4;
+      --accent: #7a6a52;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Baskerville Old Face", "Baskerville", Georgia, "Times New Roman", serif;
+      display: flex; align-items: center; justify-content: center;
+      padding: 2rem; line-height: 1.5;
+    }
+    .card {
+      max-width: 620px; width: 100%;
+      background: #fff; border: 1px solid var(--line); border-radius: 12px;
+      padding: 2.4rem 2.6rem; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .brand {
+      font-size: 2.6rem; font-weight: 600; letter-spacing: .01em;
+      margin: 0 0 .2rem;
+    }
+    /* the bullets in h•eart•h: smaller, raised, muted — keeps "hearth" readable */
+    .brand .dot { color: var(--accent); font-size: .5em; vertical-align: .35em; padding: 0 .06em; }
+    .sub { color: var(--muted); font-size: 1.05rem; margin: 0 0 1.6rem; font-style: italic; }
+    .rule { height: 1px; background: var(--line); margin: 1.4rem 0; border: 0; }
+    p { margin: .6rem 0; }
+    .note { color: var(--muted); font-size: .95rem; }
+    .tags { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.2rem; }
+    .tag {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: .72rem; color: var(--accent);
+      border: 1px solid var(--line); border-radius: 999px; padding: .2rem .6rem;
+      background: #fbf9f5;
+    }
+    footer { margin-top: 1.6rem; color: var(--muted); font-size: .8rem; }
+    .seal { font-size: .8rem; color: var(--accent); }
+  </style>
 </head>
 <body>
-    <h1>Hello from h•eart•h Prometheus!</h1>
-    <p>UI will go here</p>
+  <main class="card">
+    <h1 class="brand">h<span class="dot">•</span>eart<span class="dot">•</span>h&nbsp;Prometheus</h1>
+    <p class="sub">Work for Nature, and Nature will work for you.</p>
+
+    <p>Genesis Runtime — a <strong>bounded, pre-pilot</strong> interface to the
+       Prometheus v1.1 Holochain backend.</p>
+
+    <hr class="rule">
+
+    <p class="note">This interface <strong>displays runtime status; it does not
+       decide</strong>. Canonical meaning lives in
+       <code>Permaculture-DAO/prometheus-canon</code>. No PRU value, RAP class,
+       admissibility or capital claim is created here. Evaluation is
+       <em>evaluation, not certification</em>.</p>
+
+    <div class="tags">
+      <span class="tag">OHE</span>
+      <span class="tag">MRV evidence</span>
+      <span class="tag">claims · binary gate</span>
+      <span class="tag">no double counting</span>
+      <span class="tag">human-state weight = 0</span>
+    </div>
+
+    <footer>
+      <span class="seal">⬡</span> Holochain runtime · integrity validation enforced ·
+      Genesis pre-pilot. <span class="note">v1.1</span>
+    </footer>
+  </main>
 </body>
 </html>
