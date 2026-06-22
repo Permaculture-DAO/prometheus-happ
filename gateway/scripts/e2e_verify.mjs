@@ -45,7 +45,7 @@ try {
     { sensor_id: "SE01-LS-TEST", indicator: "soil_moisture", observed_at: 1900000000, value: 0.31, raw: { v: 0.31 } },
     { sensor_id: "WSC2-L-TEST", indicator: "precipitation", observed_at: 1900000000, value: 12.4, raw: { mm: 12.4 } },
   ]) {
-    const ev = buildEvidence(r, { subject_id: subject, calibration_hash: "calib-TEST", confidence: 0.9, reviewer: "reviewer-TEST" });
+    const ev = buildEvidence(r, { subject_id: subject, calibration_hash: "calib-TEST", confidence: 0.9, reviewer: "reviewer-TEST", test: true });
     ev.subject_id = subject; // keep one subject (buildEvidence would prefix TEST- again)
     await call("create_evidence", ev);
   }
