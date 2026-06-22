@@ -1,6 +1,8 @@
 // smoke.mjs — tests the pure + hardened pipeline (no broker, no conductor, no installs).
 import assert from "node:assert/strict";
-import { buildEvidence, sha256, validateReading, EvidenceError } from "../src/evidence.mjs";
+import {
+  buildEvidence, sha256, validateReading, EvidenceError, signReading, verifyReadingSignature,
+} from "../src/evidence.mjs";
 
 // DRY must be set before importing ingest.mjs (it reads env at module load).
 process.env.PROMETHEUS_DRY_RUN = "1";
@@ -25,8 +27,9 @@ try {
   throwsCode(() => validateReading({ ...base, indicator: "unknown_x" }, { subject_id: "s", test: false }), "BAD_INDICATOR");
   throwsCode(() => validateReading({ ...base, observed_at: -1 }, { subject_id: "s", test: false }), "BAD_TIMESTAMP");
   throwsCode(() => validateReading({ ...base, observed_at: 1.5 }, { subject_id: "s", test: false }), "BAD_TIMESTAMP");
-  throwsCode(() => validateReading({ ...base, confidence: 2 }, { subject_id: "s", test: false }), "BAD_CONFIDENCE");
-  throwsCode(() => validateReading({ ...base, confidence: NaN }, { subject_id: "s", test: false }), "BAD_CONFIDENCE");
+  throwsCode(() => validateReading(base, { subject_id: "s", test: false, confidence: 2 }), "BAD_CONFIDENCE");
+  throwsCode(() => validateReading(base, { subject_id: "s", test: false, confidence: NaN }), "BAD_CONFIDENCE");
+  throwsCode(() => validateReading({ ...base, value: 2 }, { subject_id: "s", test: false }), "BAD_VALUE");
   throwsCode(() => validateReading(base, { subject_id: "s" }), "TEST_FLAG_REQUIRED");
   throwsCode(() => validateReading({ ...base, sensor_id: "" }, { subject_id: "s", test: false }), "BAD_SENSOR_ID");
   throwsCode(() => validateReading(base, { subject_id: "bad id!", test: false }), "BAD_SUBJECT_ID");
@@ -58,6 +61,13 @@ try {
   // 7. dry-run submit never touches a conductor
   const res = await submitEvidence(ev, { dryRun: true });
   assert.equal(res.dryRun, true);
+  assert.equal(res.created, true);
+
+  // 8. deterministic test HMAC support (enabled by deployment policy, not by default).
+  const signed = { ...base, signature: "" };
+  signed.signature = signReading(signed, "TEST-key");
+  assert.equal(verifyReadingSignature(signed, "TEST-key"), true);
+  assert.equal(verifyReadingSignature({ ...signed, value: 0.99 }, "TEST-key"), false);
 
   console.log("GATEWAY_SMOKE: PASS");
   process.exit(0);

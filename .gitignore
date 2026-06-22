@@ -46,6 +46,7 @@ _PACK_FIX_AUDIT/
 _PACK_FIX_AUDIT_WEB/
 *.bak_before_manifest_v0_fix
 .runtime/
+.runtime-test/
 bridge/node_modules/
 bridge/.env
 bridge/.hc_auth
