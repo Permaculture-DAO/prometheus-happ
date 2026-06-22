@@ -10,9 +10,9 @@ use hdk::prelude::*;
 // Validation Op flattening types live in hdi.
 use hdi::prelude::{FlatOp, OpEntry};
 
-use crate::ohe::{Ohe, OheStatus};
-use crate::mrv::MrvEvidence;
 use crate::claim::{Claim, ClaimStatus};
+use crate::mrv::MrvEvidence;
+use crate::ohe::{Ohe, OheStatus};
 use crate::valueflows::ids::AgentId;
 
 // ---------- OHE ----------
@@ -128,8 +128,13 @@ impl ClaimEntry {
     pub fn validate_entry(&self) -> ValidateCallbackResult {
         match self.to_domain() {
             Some(c) if c.is_disciplined() => ValidateCallbackResult::Valid,
-            Some(_) => ValidateCallbackResult::Invalid("claim is overclaiming: investor-facing claims must be at least PilotObserved".into()),
-            None => ValidateCallbackResult::Invalid(format!("unknown claim status: {}", self.status)),
+            Some(_) => ValidateCallbackResult::Invalid(
+                "claim is overclaiming: investor-facing claims must be at least PilotObserved"
+                    .into(),
+            ),
+            None => {
+                ValidateCallbackResult::Invalid(format!("unknown claim status: {}", self.status))
+            }
         }
     }
 }
@@ -146,12 +151,14 @@ pub enum EntryTypes {
     Claim(ClaimEntry),
 }
 
-// Link types. SubjectToEvidence links a subject anchor (e.g. an OHE id) to each
-// MRV evidence record, so the admissibility gate can run over a subject's actual
-// chain-persisted evidence (not just a passed-in list).
+// Link types. SubjectToEvidence supports subject queries. EvidenceIdentity links a
+// deterministic event-identity anchor to the first committed evidence action, which
+// gives a single gateway/agent durable idempotency boundary across process restarts.
+// It is not a universal cross-agent duplicate-proof claim.
 #[hdk_link_types]
 pub enum LinkTypes {
     SubjectToEvidence,
+    EvidenceIdentity,
 }
 
 #[hdk_extern]
