@@ -35,8 +35,13 @@ export async function submitEvidence(payload, { dryRun = false } = {}) {
   }
   const client = await appWs();
   const appInfo = await client.appInfo();
-  const cell = appInfo.cell_info[ROLE].find((c) => c.type === "provisioned")?.value
-    || appInfo.cell_info[ROLE][0]?.value;
+  // Fail closed: a missing role/cell is an error, never a silent no-op.
+  const cells = appInfo?.cell_info?.[ROLE];
+  if (!Array.isArray(cells) || cells.length === 0) {
+    throw new Error(`conductor: role "${ROLE}" not found in app "${APP_ID}" — fail closed`);
+  }
+  const cell = (cells.find((c) => c.type === "provisioned") || cells[0])?.value;
+  if (!cell?.cell_id) throw new Error(`conductor: no cell_id for role "${ROLE}" — fail closed`);
   const actionHash = await client.callZome({
     cell_id: cell.cell_id,
     zome_name: ZOME,

@@ -1,41 +1,63 @@
-// smoke.mjs — tests the pure pipeline (no broker, no conductor, no installs needed).
+// smoke.mjs — tests the pure + hardened pipeline (no broker, no conductor, no installs).
 import assert from "node:assert/strict";
-import { buildEvidence, sha256 } from "../src/evidence.mjs";
-import { readingToEvidence } from "../src/ingest.mjs";
-import { submitEvidence } from "../src/conductor.mjs";
+import { buildEvidence, sha256, validateReading, EvidenceError } from "../src/evidence.mjs";
+
+// DRY must be set before importing ingest.mjs (it reads env at module load).
+process.env.PROMETHEUS_DRY_RUN = "1";
+const { handleMessage, readingToEvidence, stats } = await import("../src/ingest.mjs");
+const { submitEvidence } = await import("../src/conductor.mjs");
+
+const throwsCode = (fn, code) => {
+  try { fn(); } catch (e) { assert.ok(e instanceof EvidenceError && e.code === code, `expected ${code}, got ${e.code}`); return; }
+  assert.fail(`expected throw ${code}`);
+};
 
 try {
-  // 1. buildEvidence: provenance present, deterministic id
-  const reading = { sensor_id: "SE01-LS-01", indicator: "soil_moisture", observed_at: 1900000000, value: 0.31, raw: { v: 0.31 } };
-  const ev = buildEvidence(reading, { subject_id: "ohe-1", calibration_hash: "calib-abc", confidence: 0.9, reviewer: "rev-1" });
-  assert.equal(ev.subject_id, "ohe-1");
-  assert.equal(ev.indicator, "soil_moisture");
-  assert.equal(ev.method_hash, "calib-abc", "method_hash = calibration provenance");
-  assert.equal(ev.data_hash, sha256({ v: 0.31 }), "data_hash = raw reading hash");
-  assert.equal(ev.observed_at, 1900000000);
-  assert.equal(ev.id, "SE01-LS-01:soil_moisture:1900000000", "deterministic id (no-double-counting friendly)");
-  assert.equal(ev.reviewer, "rev-1");
+  const base = { sensor_id: "SE01-LS-01", indicator: "soil_moisture", observed_at: 1900000000, value: 0.31, raw: { v: 0.31 } };
 
-  // 2. missing provenance / required fields throw
-  assert.throws(() => buildEvidence({ indicator: "x", observed_at: 1 }, { subject_id: "s" }), /sensor_id/);
-  assert.throws(() => buildEvidence(reading, {}), /subject_id/);
+  // 1. buildEvidence: provenance + deterministic id (test flag explicit)
+  const ev = buildEvidence(base, { subject_id: "ohe-1", calibration_hash: "calib-abc", confidence: 0.9, reviewer: "rev-1", test: false });
+  assert.equal(ev.method_hash, "calib-abc");
+  assert.equal(ev.data_hash, sha256({ v: 0.31 }));
+  assert.equal(ev.id, "SE01-LS-01:soil_moisture:1900000000");
 
-  // 3. test data is clearly labelled (never mistaken for real evidence)
-  const t = buildEvidence(reading, { subject_id: "ohe-1", test: true });
-  assert.ok(t.subject_id.startsWith("TEST-"), "test data is labelled TEST-");
-  assert.ok(t.id.startsWith("test:"), "test id labelled");
+  // 2. validation is fail-closed
+  throwsCode(() => validateReading({ ...base, indicator: "unknown_x" }, { subject_id: "s", test: false }), "BAD_INDICATOR");
+  throwsCode(() => validateReading({ ...base, observed_at: -1 }, { subject_id: "s", test: false }), "BAD_TIMESTAMP");
+  throwsCode(() => validateReading({ ...base, observed_at: 1.5 }, { subject_id: "s", test: false }), "BAD_TIMESTAMP");
+  throwsCode(() => validateReading({ ...base, confidence: 2 }, { subject_id: "s", test: false }), "BAD_CONFIDENCE");
+  throwsCode(() => validateReading({ ...base, confidence: NaN }, { subject_id: "s", test: false }), "BAD_CONFIDENCE");
+  throwsCode(() => validateReading(base, { subject_id: "s" }), "TEST_FLAG_REQUIRED");
+  throwsCode(() => validateReading({ ...base, sensor_id: "" }, { subject_id: "s", test: false }), "BAD_SENSOR_ID");
+  throwsCode(() => validateReading(base, { subject_id: "bad id!", test: false }), "BAD_SUBJECT_ID");
 
-  // 4. MQTT topic -> evidence
-  const fromTopic = readingToEvidence("prometheus/ohe-1/precipitation",
-    JSON.stringify({ sensor_id: "WSC2-L-01", observed_at: 1900000100, value: 12.4, raw: { mm: 12.4 } }));
-  assert.equal(fromTopic.subject_id, "ohe-1");
-  assert.equal(fromTopic.indicator, "precipitation");
+  // 3. test data structurally namespaced
+  const t = buildEvidence(base, { subject_id: "ohe-1", test: true });
+  assert.ok(t.subject_id.startsWith("TEST-") && t.id.startsWith("test:"), "test data namespaced");
+
+  // 4. topic parsing + bad topic / bad json rejected
+  const msg = JSON.stringify({ sensor_id: "WSC2-L-01", observed_at: 1900000100, value: 12.4, raw: { mm: 12.4 } });
+  const fromTopic = readingToEvidence("prometheus/ohe-1/precipitation", msg);
   assert.equal(fromTopic.data_hash, sha256({ mm: 12.4 }));
+  throwsCode(() => readingToEvidence("bad/topic", msg), "BAD_TOPIC");
+  throwsCode(() => readingToEvidence("prometheus/ohe-1/precipitation", "{not json"), "BAD_JSON");
 
-  // 5. dry-run submit never touches a conductor
+  // 5. real-evidence guard: without PROMETHEUS_ALLOW_REAL, test:false is forced to test
+  const guarded = readingToEvidence("prometheus/ohe-1/precipitation", JSON.stringify({ sensor_id: "WSC2-L-01", observed_at: 1900000100, value: 1, test: false }));
+  assert.ok(guarded.subject_id.startsWith("TEST-"), "real evidence forced to TEST until authorized");
+
+  // 6. handleMessage: ok -> dedup -> quarantine, stats tracked
+  const r1 = await handleMessage("prometheus/ohe-1/soil_moisture", JSON.stringify({ sensor_id: "SE01-LS-01", observed_at: 1900000200, value: 0.3, raw: { v: 0.3 } }));
+  assert.ok(r1.ok, "valid message ingested");
+  const r2 = await handleMessage("prometheus/ohe-1/soil_moisture", JSON.stringify({ sensor_id: "SE01-LS-01", observed_at: 1900000200, value: 0.3, raw: { v: 0.3 } }));
+  assert.ok(r2.deduped, "duplicate deduped (idempotent)");
+  const r3 = await handleMessage("prometheus/ohe-1/soil_moisture", "{broken");
+  assert.ok(r3.quarantined && r3.code === "BAD_JSON", "malformed quarantined");
+  assert.equal(stats.ingested, 1); assert.equal(stats.deduped, 1); assert.equal(stats.quarantined, 1);
+
+  // 7. dry-run submit never touches a conductor
   const res = await submitEvidence(ev, { dryRun: true });
   assert.equal(res.dryRun, true);
-  assert.equal(res.would_call, "zome_coordinator.create_evidence");
 
   console.log("GATEWAY_SMOKE: PASS");
   process.exit(0);

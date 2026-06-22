@@ -4,14 +4,18 @@
   "private": true,
   "type": "module",
   "description": "Sensor -> Holochain ingest adapter (MQTT/Mosquitto -> create_evidence). Runs on the gateway (e.g. Raspberry Pi 5), local-first.",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node src/ingest.mjs",
     "dry-run": "PROMETHEUS_DRY_RUN=1 node src/ingest.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "e2e": "node scripts/e2e_verify.mjs"
   },
   "dependencies": {
-    "@holochain/client": "^0.20.0",
-    "mqtt": "^5.10.0"
+    "@holochain/client": "0.20.5",
+    "mqtt": "5.15.1"
   },
   "license": "UNLICENSED"
 }
