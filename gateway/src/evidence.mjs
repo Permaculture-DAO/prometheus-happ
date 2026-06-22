@@ -1,6 +1,6 @@
-// evidence.mjs — pure provenance logic: a sensor reading -> an MRV evidence payload
-// matching the runtime MrvEvidenceEntry. Dependency-free (node:crypto only), so it
-// is unit-testable without MQTT or a conductor.
+// evidence.mjs — pure provenance logic + input validation: a sensor reading -> an
+// MRV evidence payload matching the runtime MrvEvidenceEntry. Dependency-free
+// (node:crypto only), so it is unit-testable without MQTT or a conductor.
 //
 // Canon: this records EVIDENCE with provenance — never value, never admissibility.
 // The conductor's validate callback rejects anything missing provenance; the
@@ -11,33 +11,67 @@ import { createHash } from "node:crypto";
 export const sha256 = (input) =>
   createHash("sha256").update(typeof input === "string" ? input : JSON.stringify(input)).digest("hex");
 
+// Indicators the pilot recognises (from MRV_BASELINE_PROTOCOL_SICILY.md). Unsupported
+// indicators are rejected — they cannot silently become evidence. Override/extend via
+// PROMETHEUS_INDICATORS (comma-separated) for new measurement campaigns.
+export const ALLOWED_INDICATORS = new Set(
+  (process.env.PROMETHEUS_INDICATORS
+    ? process.env.PROMETHEUS_INDICATORS.split(",").map((s) => s.trim())
+    : [
+        "soil_moisture", "precipitation", "air_temperature", "solar_radiation",
+        "wind", "atmospheric_pressure", "water_holding_capacity", "humidity",
+        "co2", "voc", "soil_organic_matter", "bulk_density", "texture", "pH",
+        "N_P_K", "infiltration_rate", "ndvi", "biodiversity_count",
+        "water_input", "fertiliser_input", "fuel_input", "labour_hours",
+        "yield_per_species", "output_variance", "stress_event",
+        "land_equivalent_ratio", "geo_photo",
+      ]).filter(Boolean)
+);
+
+const ID_RE = /^[A-Za-z0-9._:-]{1,128}$/;
+
+export class EvidenceError extends Error {
+  constructor(message, code) { super(message); this.name = "EvidenceError"; this.code = code; }
+}
+
+/** Validate a raw reading. Throws EvidenceError (fail-closed). */
+export function validateReading(reading, opts) {
+  const fail = (m, c) => { throw new EvidenceError(m, c); };
+  if (!reading || typeof reading !== "object") fail("reading must be an object", "BAD_READING");
+  const { sensor_id, indicator, observed_at, confidence } = reading;
+  if (!sensor_id || !ID_RE.test(String(sensor_id))) fail("invalid sensor_id", "BAD_SENSOR_ID");
+  if (!indicator || !ALLOWED_INDICATORS.has(String(indicator))) fail(`unsupported indicator: ${indicator}`, "BAD_INDICATOR");
+  const ts = Number(observed_at);
+  if (!Number.isInteger(ts) || ts <= 0 || ts > 4102444800) fail("observed_at must be a unix-second integer", "BAD_TIMESTAMP");
+  if (confidence !== undefined && confidence !== null) {
+    const c = Number(confidence);
+    if (!Number.isFinite(c) || c < 0 || c > 1) fail("confidence must be finite in [0,1]", "BAD_CONFIDENCE");
+  }
+  if (!opts || !opts.subject_id || !ID_RE.test(String(opts.subject_id))) fail("invalid subject_id", "BAD_SUBJECT_ID");
+  if (typeof opts.test !== "boolean") fail("opts.test must be an explicit boolean (no silent default)", "TEST_FLAG_REQUIRED");
+}
+
 /**
- * Build an MrvEvidenceEntry payload from a sensor reading.
+ * Build an MrvEvidenceEntry payload from a sensor reading. Validates first (fail-closed).
  * @param {object} reading  { sensor_id, indicator, value, unit, observed_at, raw }
- * @param {object} opts     { subject_id, calibration_hash, confidence, reviewer, test }
+ * @param {object} opts     { subject_id, test (REQUIRED boolean), calibration_hash, confidence, reviewer }
  * @returns {object} payload for the coordinator `create_evidence` zome fn.
  */
 export function buildEvidence(reading, opts) {
+  validateReading(reading, opts);
   const { sensor_id, indicator, observed_at, raw } = reading;
-  const { subject_id, calibration_hash, confidence, reviewer = null, test = false } = opts;
+  const { subject_id, calibration_hash, confidence, reviewer = null, test } = opts;
 
-  if (!sensor_id || !indicator || !observed_at) {
-    throw new Error("reading requires sensor_id, indicator, observed_at");
-  }
-  if (!subject_id) throw new Error("opts.subject_id is required");
-
-  // Deterministic id = sensor:indicator:time → helps the runtime no-double-counting.
-  const id = `${test ? "test:" : ""}${sensor_id}:${indicator}:${observed_at}`;
+  // Deterministic id = sensor:indicator:time → correlation id + runtime no-double-counting.
+  const id = `${test ? "test:" : ""}${sensor_id}:${indicator}:${Number(observed_at)}`;
 
   return {
     id,
-    // TEST data is clearly labelled so it can never be mistaken for real evidence.
+    // TEST data is namespaced so it can never be mistaken for real evidence.
     subject_id: test ? `TEST-${subject_id}` : subject_id,
     indicator,
-    // method_hash = provenance of HOW: sensor model + calibration record.
-    method_hash: calibration_hash || sha256(`sensor:${sensor_id}`),
-    // data_hash = provenance of WHAT: hash of the raw reading payload.
-    data_hash: sha256(raw ?? reading),
+    method_hash: calibration_hash || sha256(`sensor:${sensor_id}`), // provenance of HOW
+    data_hash: sha256(raw ?? reading),                              // provenance of WHAT
     observed_at: Number(observed_at),
     confidence: typeof confidence === "number" ? confidence : 0.7,
     missing_data: reading.value === null || reading.value === undefined,

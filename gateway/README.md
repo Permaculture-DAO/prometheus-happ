@@ -14,6 +14,18 @@ path, matching the site plan (LoRaWAN → MQTT → Holochain).
 - **Test data is clearly labelled** (`TEST-` subject, `test:` id) — never mistaken
   for real evidence. The agent never fabricates real evidence.
 
+## Hardening (fail-closed)
+- **Validation:** rejects unsupported indicators, non-integer/out-of-range
+  timestamps, non-finite confidence, malformed ids/topics, non-JSON payloads.
+- **Synthetic-until-authorized guard:** unless `PROMETHEUS_ALLOW_REAL=1`, every
+  reading is forced to TEST — the gateway is structurally unable to write unlabelled
+  real evidence before authorized field collection.
+- **Idempotency:** duplicate evidence ids (correlation id = the deterministic id) are
+  deduplicated, not re-submitted.
+- **Quarantine:** malformed messages are counted + logged (code only), never crash
+  the loop. **Bounded retry** on transient submit errors; **fail-closed** if the app
+  role/cell is absent. Logs status only — **never raw payloads or credentials**.
+
 ## Topic convention
 `prometheus/<subject_id>/<indicator>` → JSON
 `{ sensor_id, value, unit, observed_at, calibration_hash?, confidence?, reviewer?, raw?, test? }`
@@ -26,7 +38,10 @@ PROMETHEUS_DRY_RUN=1 npm start   # subscribe + build evidence, do NOT touch the 
 npm start                   # full: needs a running conductor (hc-spin / hc sandbox)
 ```
 Env: `MQTT_URL` (mqtt://127.0.0.1:1883), `MQTT_TOPIC` (prometheus/+/+),
-`PROMETHEUS_SUBJECT_ID`, `PROMETHEUS_APP_ID`, `PROMETHEUS_ROLE` (hearth).
+`MQTT_USERNAME`/`MQTT_PASSWORD`, `PROMETHEUS_SUBJECT_ID`, `PROMETHEUS_APP_ID`,
+`PROMETHEUS_ROLE` (hearth), `PROMETHEUS_ALLOW_REAL` (1 = permit real evidence;
+default forces TEST), `PROMETHEUS_INDICATORS` (extend the allowlist),
+`PROMETHEUS_MAX_RETRIES` (3).
 
 ## Files
 - `src/evidence.mjs` — pure provenance logic (dependency-free, unit-tested).

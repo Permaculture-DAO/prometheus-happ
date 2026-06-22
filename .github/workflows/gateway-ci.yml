@@ -4,13 +4,19 @@ on:
     branches: [main]
   pull_request:
 jobs:
-  smoke:
+  gateway-unit:
+    # Unit / pure-pipeline + failure-path tests. NOT an end-to-end runtime proof
+    # (the live MQTT->conductor proof needs a launcher-managed conductor; see
+    # gateway/scripts/e2e_verify.mjs and the ops-docs Raspberry Pi runbook).
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-      - name: gateway pure-pipeline smoke (no broker/conductor needed)
-        run: node scripts/smoke.mjs
+          node-version-file: gateway/.nvmrc
+      - name: deterministic install (verifies lockfile)
+        run: npm ci
+        working-directory: gateway
+      - name: gateway unit + failure-path tests
+        run: npm run smoke
         working-directory: gateway
