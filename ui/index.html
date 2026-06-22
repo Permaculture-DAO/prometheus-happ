@@ -1,80 +1,180 @@
 <!DOCTYPE html>
+<!--
+  h•eart•h Prometheus — runtime operator console (served by hc-spin / Launcher).
+  Canon: the console DISPLAYS, never decides. It records evidence with provenance and
+  shows BINARY admissibility (admissible / not) — never a value, never a right.
+  LIVE mode: inside hc-spin/Launcher, AppWebsocket.connect() is injected (the launcher
+  signs zome calls — no passphrase in the UI). SIMULATION mode (synthetic, labelled)
+  runs the same gate logic locally when no conductor is present.
+-->
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>h•eart•h Prometheus — Genesis Runtime</title>
-  <style>
-    :root {
-      --ink: #1c1a17;
-      --muted: #6b655c;
-      --line: #e4dfd6;
-      --bg: #faf8f4;
-      --accent: #7a6a52;
-    }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
-    body {
-      background: var(--bg);
-      color: var(--ink);
-      font-family: "Baskerville Old Face", "Baskerville", Georgia, "Times New Roman", serif;
-      display: flex; align-items: center; justify-content: center;
-      padding: 2rem; line-height: 1.5;
-    }
-    .card {
-      max-width: 620px; width: 100%;
-      background: #fff; border: 1px solid var(--line); border-radius: 12px;
-      padding: 2.4rem 2.6rem; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-    }
-    .brand {
-      font-size: 2.6rem; font-weight: 600; letter-spacing: .01em;
-      margin: 0 0 .2rem;
-    }
-    /* the bullets in h•eart•h: smaller, raised, muted — keeps "hearth" readable */
-    .brand .dot { color: var(--accent); font-size: .5em; vertical-align: .35em; padding: 0 .06em; }
-    .sub { color: var(--muted); font-size: 1.05rem; margin: 0 0 1.6rem; font-style: italic; }
-    .rule { height: 1px; background: var(--line); margin: 1.4rem 0; border: 0; }
-    p { margin: .6rem 0; }
-    .note { color: var(--muted); font-size: .95rem; }
-    .tags { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.2rem; }
-    .tag {
-      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-      font-size: .72rem; color: var(--accent);
-      border: 1px solid var(--line); border-radius: 999px; padding: .2rem .6rem;
-      background: #fbf9f5;
-    }
-    footer { margin-top: 1.6rem; color: var(--muted); font-size: .8rem; }
-    .seal { font-size: .8rem; color: var(--accent); }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>h•eart•h Prometheus — console</title>
+<style>
+  :root{ --bg:#05080a; --green:#33ff7a; --dim:#1f7a3e; --amber:#e8a33d; --red:#ff6b5a;
+         --mono:"SFMono-Regular",Consolas,"Liberation Mono","DejaVu Sans Mono",monospace; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--green);font-family:var(--mono);
+       font-size:14px;line-height:1.5;height:100vh;display:flex;flex-direction:column;
+       text-shadow:0 0 6px rgba(51,255,122,.35)}
+  .crt::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:9;
+       background:repeating-linear-gradient(transparent 0 2px,rgba(0,0,0,.18) 2px 4px)}
+  header{padding:10px 14px;border-bottom:1px solid var(--dim);display:flex;
+         justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  header b{letter-spacing:.12em}
+  #status{font-size:12px}
+  #status .live{color:var(--green)} #status .sim{color:var(--amber)} #status .off{color:var(--red)}
+  #term{flex:1;overflow:auto;padding:14px;white-space:pre-wrap;word-break:break-word}
+  #term .p{color:var(--dim)}        /* prompt */
+  #term .ok{color:var(--green)}
+  #term .no{color:var(--red)}
+  #term .info{color:#8fb9ff}
+  #term .warn{color:var(--amber)}
+  #term .c{color:var(--dim)}        /* comment */
+  .bar{border-top:1px solid var(--dim);padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button{background:#0a1410;color:var(--green);border:1px solid var(--dim);border-radius:4px;
+         font-family:var(--mono);font-size:13px;padding:6px 10px;cursor:pointer}
+  button:hover{background:#0f1f17;box-shadow:0 0 8px rgba(51,255,122,.25)}
+  input,select{background:#0a1410;color:var(--green);border:1px solid var(--dim);
+         border-radius:4px;font-family:var(--mono);font-size:12px;padding:5px 7px}
+  label{font-size:12px;color:var(--dim)}
+  .cursor{display:inline-block;width:8px;height:15px;background:var(--green);
+          animation:blink 1s steps(1) infinite;vertical-align:-2px}
+  @keyframes blink{50%{opacity:0}}
+</style>
 </head>
-<body>
-  <main class="card">
-    <h1 class="brand">h<span class="dot">•</span>eart<span class="dot">•</span>h&nbsp;Prometheus</h1>
-    <p class="sub">Work for Nature, and Nature will work for you.</p>
+<body class="crt">
+<header>
+  <b>h•eart•h Prometheus — runtime console</b>
+  <span id="status">connecting…</span>
+</header>
+<div id="term"></div>
+<div class="bar">
+  <label>subject <input id="subj" value="ohe-sicily-1" size="16"></label>
+  <button onclick="cmdOHE('Proposed')">create OHE</button>
+  <label>indicator
+    <select id="ind">
+      <option>soil_moisture</option><option>precipitation</option>
+      <option>air_temperature</option><option>soil_organic_matter</option><option>ndvi</option>
+    </select></label>
+  <label>conf <input id="conf" value="0.90" size="4"></label>
+  <label><input type="checkbox" id="rev" checked> reviewer</label>
+  <button onclick="cmdEvidence()">add evidence</button>
+  <label>thr <input id="thr" value="0.85" size="4"></label>
+  <label><input type="checkbox" id="legal" checked> legal</label>
+  <button onclick="cmdAssess()">assess gate</button>
+  <button onclick="cmdInvalid()">try invalid OHE</button>
+  <button onclick="cmdDemo()">run full demo</button>
+  <button onclick="document.getElementById('term').innerHTML=''">clear</button>
+</div>
 
-    <p>Genesis Runtime — a <strong>bounded, pre-pilot</strong> interface to the
-       Prometheus v1.1 Holochain backend.</p>
+<script type="module">
+const ROLE = "hearth", ZOME = "zome_coordinator";
+const term = document.getElementById("term");
+const statusEl = document.getElementById("status");
+let mode = "sim", client = null, cell_id = null;
+const sim = { subjects: {} };           // SIMULATION state mirrors the runtime gate
 
-    <hr class="rule">
+const out = (t, cls="") => { const s=document.createElement("span"); if(cls)s.className=cls;
+  s.textContent=t+"\n"; term.appendChild(s); term.scrollTop=term.scrollHeight; };
+const prompt = (t) => out("> "+t, "p");
+const TEST = (id) => id.startsWith("TEST-") ? id : "TEST-"+id;   // always label test data
+const sha = (s) => "h"+Math.abs([...JSON.stringify(s)].reduce((a,c)=>(a*31+c.charCodeAt(0))|0,7)).toString(16);
 
-    <p class="note">This interface <strong>displays runtime status; it does not
-       decide</strong>. Canonical meaning lives in
-       <code>Permaculture-DAO/prometheus-canon</code>. No PRU value, RAP class,
-       admissibility or capital claim is created here. Evaluation is
-       <em>evaluation, not certification</em>.</p>
+async function call(fn, payload){
+  if(mode==="live"){ return client.callZome({ cell_id, zome_name:ZOME, fn_name:fn, payload }); }
+  return simCall(fn, payload);          // SIMULATION
+}
+function simCall(fn, p){
+  if(fn==="create_ohe"){
+    if(p.status==="Active" && !p.baseline_recorded)
+      throw new Error("integrity validate: an Active OHE requires a recorded baseline");
+    sim.subjects[p.id] = { ...p, evidence: [] }; return "ActionHash:"+sha(p);
+  }
+  if(fn==="create_evidence"){
+    const s = sim.subjects[p.subject_id] || (sim.subjects[p.subject_id]={evidence:[]});
+    if(!s.evidence.find(e=>e.id===p.id)) s.evidence.push(p);   // no double counting
+    return "ActionHash:"+sha(p);
+  }
+  if(fn==="assess_subject_admissibility"){
+    const s = sim.subjects[p.subject_id]; const ev = s?s.evidence:[];
+    const conf = ev.length ? Math.min(...ev.map(e=>e.confidence)) : 0;
+    const reviewed = ev.every(e=>e.reviewer);
+    const admissible = !!p.legal_gate && ev.length>0 && (!p.require_reviewer||reviewed)
+                       && conf >= p.confidence_threshold;
+    return { admissible, authority_boundary:"admissibility_only_no_value" };
+  }
+  throw new Error("unknown fn "+fn);
+}
 
-    <div class="tags">
-      <span class="tag">OHE</span>
-      <span class="tag">MRV evidence</span>
-      <span class="tag">claims · binary gate</span>
-      <span class="tag">no double counting</span>
-      <span class="tag">human-state weight = 0</span>
-    </div>
+window.cmdOHE = async (status) => {
+  const id = TEST(document.getElementById("subj").value.trim());
+  prompt(`create_ohe { id:"${id}", status:"${status}", baseline:false }`);
+  try{ const r = await call("create_ohe",{ id, steward:"permaculture-dao", site:"TEST plot", status, baseline_recorded:false });
+       out("  → OHE created  "+r, "ok"); }catch(e){ out("  ✗ "+e.message,"no"); }
+};
+window.cmdEvidence = async () => {
+  const id = TEST(document.getElementById("subj").value.trim());
+  const indicator = document.getElementById("ind").value;
+  const confidence = parseFloat(document.getElementById("conf").value);
+  const reviewer = document.getElementById("rev").checked ? "reviewer-TEST" : null;
+  const ev = { id:`test:${indicator}:${Date.now()}`, subject_id:id, indicator,
+    method_hash:sha("calib"), data_hash:sha(Math.random()), observed_at:Math.floor(Date.now()/1000),
+    confidence, missing_data:false, reviewer };
+  prompt(`create_evidence { indicator:"${indicator}", conf:${confidence}, reviewer:${reviewer?'"…"':"null"} }`);
+  try{ const r = await call("create_evidence", ev); out("  → evidence stored (provenance-anchored)  "+r,"ok"); }
+  catch(e){ out("  ✗ "+e.message,"no"); }
+};
+window.cmdAssess = async () => {
+  const id = TEST(document.getElementById("subj").value.trim());
+  const confidence_threshold = parseFloat(document.getElementById("thr").value);
+  const require_reviewer = document.getElementById("rev").checked;
+  const legal_gate = document.getElementById("legal").checked;
+  prompt(`assess_subject_admissibility { legal:${legal_gate}, thr:${confidence_threshold}, reviewer:${require_reviewer} }`);
+  try{ const r = await call("assess_subject_admissibility",{ subject_id:id, legal_gate, confidence_threshold, require_reviewer });
+       out(`  { admissible: ${r.admissible}, authority_boundary: "${r.authority_boundary}" }`, r.admissible?"ok":"warn");
+       out("  "+(r.admissible?"ADMISSIBLE — binary; no value, no right produced.":"NOT admissible — lowest gate controls."),"c");
+  }catch(e){ out("  ✗ "+e.message,"no"); }
+};
+window.cmdInvalid = async () => {
+  prompt(`create_ohe { id:"TEST-ohe-bad", status:"Active", baseline:false }`);
+  try{ await call("create_ohe",{ id:"TEST-ohe-bad", steward:"x", site:"y", status:"Active", baseline_recorded:false });
+       out("  ✗ expected rejection did NOT happen","no"); }
+  catch(e){ out("  ✓ rejected by integrity validate: "+e.message,"ok"); }
+};
+window.cmdDemo = async () => {
+  out("── full demo (synthetic TEST data) ──────────────","c");
+  await cmdOHE("Proposed"); await cmdEvidence();
+  document.getElementById("ind").value="precipitation"; await cmdEvidence();
+  document.getElementById("ind").value="soil_moisture";
+  await cmdAssess(); await cmdInvalid();
+  out("── done. evidence in → gate queried → invalid rejected. ──","c");
+};
 
-    <footer>
-      <span class="seal">⬡</span> Holochain runtime · integrity validation enforced ·
-      Genesis pre-pilot. <span class="note">v1.1</span>
-    </footer>
-  </main>
+(async function connect(){
+  out("h•eart•h Prometheus runtime console","ok");
+  out("Canon: this console displays, never decides. Admissibility is binary, never a value.","c");
+  out("");
+  try{
+    const { AppWebsocket } = await import("https://esm.sh/@holochain/client@0.20.5");
+    client = await AppWebsocket.connect();                 // hc-spin/Launcher injects env + signs
+    const info = await client.appInfo();
+    const ci = info.cell_info[ROLE].find(c=>c.type==="provisioned") || info.cell_info[ROLE][0];
+    cell_id = (ci.value||ci).cell_id;
+    mode = "live";
+    statusEl.innerHTML = '<span class="live">● LIVE — connected to conductor</span>';
+    out("connected to the conductor — LIVE. The launcher holds your keys (lair); zome calls are signed for you.","ok");
+  }catch(e){
+    mode = "sim";
+    statusEl.innerHTML = '<span class="sim">● SIMULATION — no conductor (synthetic data)</span>';
+    out("no conductor detected → SIMULATION mode. Same gate logic, synthetic data, clearly labelled.","warn");
+    out("To go LIVE: open this UI inside hc-spin / the Launcher.","c");
+  }
+  out('Use the buttons below, or press "run full demo".  ');
+  const c=document.createElement("span"); c.className="cursor"; term.appendChild(c);
+})();
+</script>
 </body>
 </html>
