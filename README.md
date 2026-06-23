@@ -16,11 +16,15 @@ It does not define Prometheus constitutional meaning.
 
 Current status:
 
-**Genesis runtime staging — pre-final-freeze, pre-runtime-release**
+**Bounded synthetic runtime proof — signed v1.1.3**
 
-This repository is not yet a final runtime release.
+The current signed runtime proof is
+[`v1.1.3-runtime-proof`](https://github.com/Permaculture-DAO/prometheus-happ/releases/tag/v1.1.3-runtime-proof).
+It demonstrates the recorded synthetic MQTT-to-Holochain B0-B8 scope only.
 
-No `.dna`, `.happ`, `.webhapp`, `.sha256`, or `.asc` file should be treated as final unless generated after runtime QA, canonical boundary review, checksum regeneration, and authorized release signing.
+It does not establish production readiness, empirical or agronomic validation,
+universal duplicate prevention, certification, legal admission, market admission,
+financial value, or rights.
 
 ## Runtime role
 
@@ -105,3 +109,12 @@ Bridge/API behavior lives in `prometheus-bridge`.
 Frontend behavior lives in `prometheus-console`.
 
 Legacy runtime history remains outside the active path unless formally reintroduced.
+
+## Public visibility and license boundary
+
+Public visibility enables inspection and verification. This repository currently
+declares its software packages `UNLICENSED`; visibility alone is not a grant to
+copy, modify, redistribute, deploy, or commercially use the code. A separate
+license decision is required before representing this repository as open source.
+
+See [`PUBLICATION_BOUNDARY.md`](PUBLICATION_BOUNDARY.md).
