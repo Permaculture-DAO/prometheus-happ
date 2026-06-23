@@ -26,6 +26,9 @@ It does not establish production readiness, empirical or agronomic validation,
 universal duplicate prevention, certification, legal admission, market admission,
 financial value, or rights.
 
+Signed canonical documents and verification materials are indexed at
+[`prometheus-canonical-releases`](https://github.com/Permaculture-DAO/prometheus-canonical-releases).
+
 ## Runtime role
 
 This repository is expected to contain the Holochain-native backend implementation layer for the Prometheus pilot stack, including:
