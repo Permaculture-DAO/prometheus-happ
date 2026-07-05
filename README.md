@@ -93,6 +93,7 @@ Runtime-facing repositories:
 
 - `Permaculture-DAO/prometheus-bridge`
 - `Permaculture-DAO/prometheus-console`
+- `Permaculture-DAO/prometheus-runtime` — the `S0`-`S6` gated data-ingestion and evidence-batch-packaging pipeline. Distinct from this repository: `prometheus-runtime` is the ingestion/normalization layer, while this `prometheus-happ` is the Holochain-native backend (DNA, zomes) and the signed `v1.1.3-runtime-proof`.
 
 Operational and evaluation repositories:
 
