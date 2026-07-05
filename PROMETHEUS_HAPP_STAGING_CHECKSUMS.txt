@@ -1,5 +1,5 @@
 # PROMETHEUS_HAPP_STAGING_CHECKSUMS.txt
-# Reproducible SHA-256 of every git-tracked file at commit 5d7495d, 2026-07-05T05:44:35Z.
+# Reproducible SHA-256 of every git-tracked file at commit 19de12d, 2026-07-05T09:19:10Z.
 # Regenerate with scripts/generate_staging_checksums.sh after changing tracked files.
 # Not the signed integrity record; the authoritative anchor is the release SHA256SUMS.asc.
 e35051d85b5a3471b4ecde128dd04182fc63c3aede0f4a3cc87d3a1b4954362f *./.cargo/config.toml
@@ -11,6 +11,7 @@ e35051d85b5a3471b4ecde128dd04182fc63c3aede0f4a3cc87d3a1b4954362f *./.cargo/confi
 a0f626a480f4059b382c29ae1ed7f36daec3637fba6340e278a223bfcb182f19 *./CONTRIBUTING.md
 d92609a15c9ca9d37280cce74fd26f5fedc3268abfd92e0b16580bee42ef11a9 *./Cargo.lock
 070df446cd27d5649f774f9fe79ef8b64c9fe54e29ac2cac6fdaf2768df8831f *./Cargo.toml
+b0e3aab5107977893ee1feba20a317b8e2bd4d03620267093248d3549e6537f3 *./LICENSE.md
 d687946c5271fc3d2689c0b9085e75695d75fd902db646c591579acd5155d4e2 *./PUBLICATION_BOUNDARY.md
 d0ffbc0938775bd9b81b83ee9bbf24842bbd182d8f80f46ee86f8205e318a5fa *./README.md
 da164ebfa0a607908334ab37631011eb0e37d3220498aecbf2f279547a2f0c99 *./SECURITY.md
@@ -54,6 +55,7 @@ a28edc7bce30169106447a50678bd128d89756b67f11225ec37553a968e06d53 *./release/v1.1
 56874fe2513dec4c8948b527eec684f6e850d9ee24ac9f49037bd69fab48369d *./release/v1.1.3-runtime-proof/RELEASE_NOTES.md
 2fb492074a63af09d34d105903ae8251cdd6aa83c335846f5f568c669abd68e5 *./release/v1.1.3-runtime-proof/SIGNING_INSTRUCTIONS.md
 2a5b222f8f54f3b4d4940a08d9eeebc5521757f976133707094d88f4efa172ba *./schemas/benchmark-intelligence/evaluation_receipt.schema.json
+47b11ae6ca5374ca1be046ea78d8bb09bb522350dd075989feec05ed1cc56e02 *./scripts/generate_staging_checksums.sh
 c6479fba47e804023410903316922a349c99d1cc99e87471ce66c4a4fb79dc08 *./scripts/runtime/build_pack_local.sh
 7eba8afb37cec8d5a0b78cdbf5b93f545dc67de380ef4882dbf8da24cc460ea1 *./scripts/runtime/check_runtime.sh
 1e1489a4b16386f8fa9f88ebeebc5a74847001fdd3324acaa66524d55da71428 *./scripts/runtime/create_fresh_sandbox.sh

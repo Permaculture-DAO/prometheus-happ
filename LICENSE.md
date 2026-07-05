@@ -1,0 +1,58 @@
+# License
+
+Copyright © 2022–2026 Permaculture DAO LLC (a Florida limited liability company),
+h•eart•h intelligence — Prometheus. All rights reserved.
+
+## 1. Proprietary — value / claim tier
+
+This repository's software is **proprietary**; its packages declare `UNLICENSED`.
+Public visibility is provided for inspection, verification of the signed runtime
+proof, and bounded technical review only. It is **not** a licence to copy, modify,
+redistribute, deploy, or commercially use the code, and no rights are granted by
+implication, estoppel, or otherwise.
+
+Prometheus separates the **proof** from the **power**:
+
+- **Verification / methodology tier** — the canon prose and methodology materials —
+  is open: prose/text under **CC-BY-SA-4.0**, and any open-sourced code under
+  **CAL-1.0**, in their own repositories. This paragraph is a **description of intent,
+  not a present grant** of any right over the code in this repository.
+- **Value / claim tier** — the runtime code here (integrity/coordinator zomes,
+  admissibility, evidence spine, and any logic that produces value or claims) — remains
+  proprietary and gate-bound.
+
+## 2. NO WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.
+
+## 3. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE COPYRIGHT
+HOLDER BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING WITHOUT LIMITATION LOSS OF PROFITS, DATA, OR
+BUSINESS), HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, ARISING IN ANY WAY OUT OF
+THE USE OF OR INABILITY TO USE THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+## 4. No claim; gate discipline
+
+Nothing in this repository creates PRU value, RAP inclusion, token/investor/land
+rights, ecological credits, governance authority, or any capital-facing claim. The
+lowest unresolved gate controls the permitted claim. See
+[`PUBLICATION_BOUNDARY.md`](PUBLICATION_BOUNDARY.md).
+
+## 5. Governing law; mandatory rights
+
+This licence is governed by the laws of **Italy**, without prejudice to (a) any
+mandatory consumer-protection rules that apply to a user acting as a consumer, and
+(b) the author's inalienable moral rights under Italian and EU law. Where these
+materials attract **sui generis database rights** (EU Directive 96/9/EC), those
+rights are reserved on the same terms. Nothing here waives rights that cannot be
+waived under applicable law.
+
+---
+*Legal template. Not legal advice. A one-time IP/commercial counsel review is
+recommended before the first paying customer, any investor/token step, or IP
+assignment to the LLC (see PUBLICATION_BOUNDARY.md).*
