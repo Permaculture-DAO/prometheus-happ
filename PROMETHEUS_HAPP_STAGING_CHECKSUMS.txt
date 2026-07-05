@@ -1,5 +1,5 @@
 # PROMETHEUS_HAPP_STAGING_CHECKSUMS.txt
-# Reproducible SHA-256 of every git-tracked file at commit d6ef3ed, 2026-07-05T06:20:35Z.
+# Reproducible SHA-256 of every git-tracked file at commit 85f252f, 2026-07-05T07:02:00Z.
 # Regenerate with scripts/generate_staging_checksums.sh after changing tracked files.
 # Not the signed integrity record; the authoritative anchor is the release SHA256SUMS.asc.
 e35051d85b5a3471b4ecde128dd04182fc63c3aede0f4a3cc87d3a1b4954362f *./.cargo/config.toml
@@ -11,6 +11,7 @@ e35051d85b5a3471b4ecde128dd04182fc63c3aede0f4a3cc87d3a1b4954362f *./.cargo/confi
 a0f626a480f4059b382c29ae1ed7f36daec3637fba6340e278a223bfcb182f19 *./CONTRIBUTING.md
 d92609a15c9ca9d37280cce74fd26f5fedc3268abfd92e0b16580bee42ef11a9 *./Cargo.lock
 070df446cd27d5649f774f9fe79ef8b64c9fe54e29ac2cac6fdaf2768df8831f *./Cargo.toml
+113f27277d4de209c29c57993aa2f528fdfab30c7bd065262cc5a64cde3f78dd *./LICENSE.md
 d687946c5271fc3d2689c0b9085e75695d75fd902db646c591579acd5155d4e2 *./PUBLICATION_BOUNDARY.md
 d0ffbc0938775bd9b81b83ee9bbf24842bbd182d8f80f46ee86f8205e318a5fa *./README.md
 da164ebfa0a607908334ab37631011eb0e37d3220498aecbf2f279547a2f0c99 *./SECURITY.md
