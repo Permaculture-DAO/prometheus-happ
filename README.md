@@ -122,3 +122,8 @@ copy, modify, redistribute, deploy, or commercially use the code. A separate
 license decision is required before representing this repository as open source.
 
 See [`PUBLICATION_BOUNDARY.md`](PUBLICATION_BOUNDARY.md).
+
+## Sprint 0 deployment baseline
+
+Candidate controls: [Holochain toolchain baseline candidate](docs/HOLOCHAIN_TOOLCHAIN_BASELINE_CANDIDATE.md). This section is implementation governance only and does not promote release or validation status.
+
