@@ -11,6 +11,7 @@ const HTTP_PORT = Number(process.env.PROMETHEUS_RUNTIME_ADAPTER_PORT || process.
 const HOLOCHAIN_ADMIN_PORT = Number(process.env.HOLOCHAIN_ADMIN_PORT || 14600);
 const HOLOCHAIN_APP_PORT = Number(process.env.HOLOCHAIN_APP_PORT || 14602);
 const HC_SANDBOX_PASSPHRASE = process.env.PROMETHEUS_HC_PASSPHRASE || "";
+const HC_SANDBOX_DIR = process.env.PROMETHEUS_HC_SANDBOX_DIR || process.cwd();
 
 const APP_ID = "hearth_prometheus";
 const EXPECTED_DNA_HASH = process.env.PROMETHEUS_EXPECTED_DNA_HASH || "uhC0kIuwnPJ1OZx6ICpBo_Qg2NrMknkLcsI-AiWANuPDgKtyMvqxf";
@@ -25,7 +26,7 @@ app.use(express.json({ limit: "16kb" }));
 async function runHcSandboxCall(command) {
   const { stdout } = await execFileAsync("hc", [
     "sandbox", "call", "--running", String(HOLOCHAIN_ADMIN_PORT), command
-  ], { timeout: 20000 });
+  ], { timeout: 20000, cwd: HC_SANDBOX_DIR });
   return JSON.parse(stdout);
 }
 
@@ -39,7 +40,6 @@ async function getRuntimeHealth() {
   const appInstalled = apps.some((item) => item.installed_app_id === APP_ID);
   const dnaPresent = cells.some((cell) => cell.dna_hash === EXPECTED_DNA_HASH);
   const appPortPresent = appWebsockets.some((ws) => ws.port === HOLOCHAIN_APP_PORT);
-
   return { appInstalled, dnaPresent, appPortPresent, ok: appInstalled && dnaPresent && appPortPresent };
 }
 
@@ -63,9 +63,9 @@ function runHcZomeCallWithPassphrase() {
     }
 
     const child = spawn("hc", [
-      "sandbox", "zome-call", "--running", String(HOLOCHAIN_ADMIN_PORT),
+      "sandbox", "zome-call", "--piped", "--running", String(HOLOCHAIN_ADMIN_PORT),
       APP_ID, EXPECTED_DNA_HASH, ZOME_NAME, SMOKE_FUNCTION, "null"
-    ], { stdio: ["pipe", "pipe", "pipe"] });
+    ], { stdio: ["pipe", "pipe", "pipe"], cwd: HC_SANDBOX_DIR });
 
     let stdout = "";
     let stderr = "";
