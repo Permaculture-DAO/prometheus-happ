@@ -204,6 +204,7 @@ pub struct EvidencePackage {
     pub raw_data_hashes: Vec<String>,
     pub transformed_data_hashes: Vec<String>,
     pub package_hash: String,
+    pub claims_registry_hash: String,
     pub missing_data_statement: String,
     pub adverse_event_statement: String,
     pub created_at: i64,
@@ -221,6 +222,8 @@ impl EvidencePackage {
             && !self.method_refs.is_empty()
             && !self.raw_data_hashes.is_empty()
             && !self.package_hash.is_empty()
+            && !self.claims_registry_hash.is_empty()
+            && self.claims_registry_hash.len() == 64
             && !self.missing_data_statement.is_empty()
             && !self.adverse_event_statement.is_empty()
             && self.created_at > 0
