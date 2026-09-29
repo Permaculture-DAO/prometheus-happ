@@ -97,7 +97,7 @@ async fn p2_2b_evidence_spine_reconstructs_on_live_conductor() {
         "land_use_history":"TEST","stewardship_rights_access":"TEST",
         "uncertainty_note":"synthetic TEST only"
     })).await;
-    assert!(!place.get_raw_39().is_empty());
+    assert!(!place.to_string().is_empty());
 
     let boundary: ActionHash = conductor.call(&zome, "create_system_boundary", serde_json::json!({
         "id":"sb-entry-TEST","version":"sb-TEST-v0.1","site_id":subject,
@@ -105,7 +105,7 @@ async fn p2_2b_evidence_spine_reconstructs_on_live_conductor() {
         "included_processes":["TEST-flow"],"excluded_processes":["real-field-performance"],
         "external_dependencies":["TEST-conductor"],"rationale":"synthetic lineage proof"
     })).await;
-    assert!(!boundary.get_raw_39().is_empty());
+    assert!(!boundary.to_string().is_empty());
 
     let observation: ActionHash = conductor.call(&zome, "create_observation", serde_json::json!({
         "id":"obs-TEST-p2-2b","subject_id":subject,
@@ -115,7 +115,7 @@ async fn p2_2b_evidence_spine_reconstructs_on_live_conductor() {
         "raw_evidence_refs":["sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
         "disturbance_id":null,"uncertainty_note":"synthetic TEST"
     })).await;
-    assert!(!observation.get_raw_39().is_empty());
+    assert!(!observation.to_string().is_empty());
 
     let package: ActionHash = conductor.call(&zome, "create_evidence_package", serde_json::json!({
         "id":package_id,"subject_id":subject,"claim_uids":[claim_uid],
@@ -128,7 +128,7 @@ async fn p2_2b_evidence_spine_reconstructs_on_live_conductor() {
         "missing_data_statement":"none in synthetic TEST",
         "adverse_event_statement":"none in synthetic TEST","created_at":now
     })).await;
-    assert!(!package.get_raw_39().is_empty());
+    assert!(!package.to_string().is_empty());
 
     let packages: serde_json::Value = conductor.call(&zome, "get_subject_evidence_packages", subject).await;
     let rows = packages.as_array().expect("package query must return array");
@@ -140,7 +140,7 @@ async fn p2_2b_evidence_spine_reconstructs_on_live_conductor() {
         "limitations":"not ecological/scientific/legal assurance","independent_for_scope":true,
         "reviewed_at":now
     })).await;
-    assert!(!review.get_raw_39().is_empty());
+    assert!(!review.to_string().is_empty());
 
     let reviews: serde_json::Value = conductor.call(&zome, "get_package_reviews", package_id).await;
     let rows = reviews.as_array().expect("review query must return array");
@@ -153,7 +153,7 @@ async fn p2_2b_evidence_spine_reconstructs_on_live_conductor() {
         "blockers":["legal gate not established"],"decided_at":now,
         "authority_boundary":"admissibility_only_no_value"
     })).await;
-    assert!(!decision.get_raw_39().is_empty());
+    assert!(!decision.to_string().is_empty());
 
     let decisions: serde_json::Value = conductor.call(&zome, "get_claim_admissibility_decisions", claim_uid).await;
     let rows = decisions.as_array().expect("decision query must return array");
@@ -170,4 +170,34 @@ async fn p2_2b_evidence_spine_reconstructs_on_live_conductor() {
         "reviewed_at":now
     })).await;
     assert!(bad_review.is_err(), "conflicted reviewer pass must be rejected");
+
+    println!("{}", serde_json::json!({
+        "schema_version":"p2.2b-sweetconductor-0.1",
+        "data_class":"synthetic_TEST",
+        "subject_id":subject,
+        "claim_uid":claim_uid,
+        "action_hashes":{
+            "place_context":place.to_string(),
+            "system_boundary":boundary.to_string(),
+            "observation":observation.to_string(),
+            "evidence_package":package.to_string(),
+            "review_attestation":review.to_string(),
+            "admissibility_decision":decision.to_string()
+        },
+        "reconstruction":{
+            "subject_to_package":true,
+            "package_to_review":true,
+            "claim_to_decision":true
+        },
+        "negative_test":{
+            "conflicted_reviewer_pass_rejected":true
+        },
+        "decision":"blocked",
+        "authority_boundary":"admissibility_only_no_value",
+        "ecological_truth":false,
+        "scientific_validation":false,
+        "legal_admission":false,
+        "certification":false,
+        "pru_value":false
+    }));
 }
