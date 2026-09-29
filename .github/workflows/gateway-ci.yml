@@ -20,3 +20,6 @@ jobs:
       - name: gateway unit + failure-path tests
         run: npm run smoke
         working-directory: gateway
+      - name: P2.2B live-proof script syntax
+        run: node --check scripts/p2_2_e2e_verify.mjs
+        working-directory: gateway
