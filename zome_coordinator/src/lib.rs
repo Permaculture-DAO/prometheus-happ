@@ -1,9 +1,9 @@
 use hdk::prelude::*;
 use zome_integrity::admissibility::admissible;
 use zome_integrity::entry_types::{
-    ClaimEntry, DisturbanceEntry, EntryTypes, LinkTypes, MrvEvidenceEntry, ObservationEntry,
-    OheEntry, PlaceContextEntry, RelationshipAssertionEntry, ReviewAttestationEntry,
-    SemanticClaimRefEntry, SystemBoundaryEntry,
+    AdmissibilityDecisionEntry, ClaimEntry, DisturbanceEntry, EntryTypes, EvidencePackageEntry,
+    LinkTypes, MrvEvidenceEntry, ObservationEntry, OheEntry, PlaceContextEntry,
+    RelationshipAssertionEntry, ReviewAttestationEntry, SemanticClaimRefEntry, SystemBoundaryEntry,
 };
 
 fn subject_base(subject_id: &str) -> ExternResult<AnyLinkableHash> {
@@ -121,6 +121,20 @@ pub fn create_review_attestation(
     entry: ReviewAttestationEntry,
 ) -> ExternResult<ActionHash> {
     create_entry(EntryTypes::ReviewAttestation(entry))
+}
+
+#[hdk_extern]
+pub fn create_evidence_package(
+    entry: EvidencePackageEntry,
+) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::EvidencePackage(entry))
+}
+
+#[hdk_extern]
+pub fn create_admissibility_decision(
+    entry: AdmissibilityDecisionEntry,
+) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::AdmissibilityDecision(entry))
 }
 
 #[hdk_extern]
