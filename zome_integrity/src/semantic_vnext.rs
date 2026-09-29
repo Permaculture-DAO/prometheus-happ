@@ -174,6 +174,7 @@ pub struct ReviewAttestation {
     pub subject_refs: Vec<String>,
     pub decision: String,
     pub limitations: String,
+    pub independent_for_scope: bool,
     pub reviewed_at: i64,
 }
 
@@ -187,6 +188,8 @@ impl ReviewAttestation {
             && matches!(self.decision.as_str(), "pass" | "conditional" | "fail" | "not_reviewed")
             && !self.limitations.is_empty()
             && self.reviewed_at > 0
+            && (self.coi_status != "independent" || self.independent_for_scope)
+            && (self.coi_status == "independent" || !self.independent_for_scope)
             && !(self.coi_status == "conflicted" && self.decision == "pass")
     }
 }
@@ -251,7 +254,7 @@ impl AdmissibilityDecision {
         let decision_ok = matches!(self.decision.as_str(), "admissible" | "blocked" | "pending");
         let authority_ok = self.authority_boundary == "admissibility_only_no_value";
         let consistency_ok = match self.decision.as_str() {
-            "admissible" => self.legal_gate && self.mrv_gate && self.blockers.is_empty(),
+            "admissible" => self.legal_gate && self.mrv_gate && !self.review_attestation_refs.is_empty() && self.blockers.is_empty(),
             "blocked" => !self.legal_gate || !self.mrv_gate || !self.blockers.is_empty(),
             "pending" => true,
             _ => false,
@@ -329,6 +332,7 @@ mod tests {
             subject_refs: vec!["method:h1".into()],
             decision: "pass".into(),
             limitations: "co-designed method".into(),
+            independent_for_scope: false,
             reviewed_at: 1,
         };
         assert!(!r.is_valid());
