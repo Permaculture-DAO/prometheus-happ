@@ -1,16 +1,15 @@
 use hdk::prelude::*;
 use zome_integrity::admissibility::admissible;
-use zome_integrity::entry_types::{ClaimEntry, EntryTypes, LinkTypes, MrvEvidenceEntry, OheEntry};
+use zome_integrity::entry_types::{
+    ClaimEntry, DisturbanceEntry, EntryTypes, LinkTypes, MrvEvidenceEntry, ObservationEntry,
+    OheEntry, PlaceContextEntry, RelationshipAssertionEntry, ReviewAttestationEntry,
+    SemanticClaimRefEntry, SystemBoundaryEntry,
+};
 
-/// Deterministic anchor for a subject (e.g. an OHE id) to hang evidence links on.
-/// Both writer and reader derive the same base from the subject id.
 fn subject_base(subject_id: &str) -> ExternResult<AnyLinkableHash> {
-    Ok(Path::from(format!("subject:{subject_id}"))
-        .path_entry_hash()?
-        .into())
+    Ok(Path::from(format!("subject:{subject_id}")).path_entry_hash()?.into())
 }
 
-/// Stable single-agent idempotency key: subject + indicator + observation time.
 fn evidence_identity_base(evidence: &MrvEvidenceEntry) -> ExternResult<AnyLinkableHash> {
     Ok(Path::from(format!(
         "evidence_identity:{}:{}:{}",
@@ -30,13 +29,7 @@ fn hello_benchmark_layer() -> ExternResult<String> {
     Ok("Prometheus Benchmark Intelligence Layer online: evaluation_not_certification".to_string())
 }
 
-// ---------------------------------------------------------------------------
-// CRUD over the canon-aligned entries. Integrity validation (ohe/mrv/claim
-// invariants + binary admissibility) runs in the integrity zome's validate
-// callback, so create_* fails for entries that violate the canon. No PRU value
-// is created or returned anywhere here.
-// ---------------------------------------------------------------------------
-
+// Legacy/current CRUD.
 #[hdk_extern]
 pub fn create_ohe(ohe: OheEntry) -> ExternResult<ActionHash> {
     create_entry(EntryTypes::Ohe(ohe))
@@ -50,15 +43,9 @@ pub fn create_evidence(evidence: MrvEvidenceEntry) -> ExternResult<ActionHash> {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreateEvidenceResult {
     pub action_hash: ActionHash,
-    /// False means an existing action was returned for the same identity tuple.
     pub created: bool,
 }
 
-/// Durable idempotent create for the local gateway/agent.
-///
-/// Sequential re-delivery of the same subject+indicator+observed_at returns the
-/// existing action. Concurrent or multi-agent races remain outside this bounded
-/// guarantee and must not be described as universally duplicate-proof.
 #[hdk_extern]
 pub fn create_evidence_idempotent(
     evidence: MrvEvidenceEntry,
@@ -75,10 +62,7 @@ pub fn create_evidence_idempotent(
         .into_iter()
         .find_map(|link| link.target.into_action_hash())
     {
-        return Ok(CreateEvidenceResult {
-            action_hash,
-            created: false,
-        });
+        return Ok(CreateEvidenceResult { action_hash, created: false });
     }
 
     let subject = evidence.subject_id.clone();
@@ -95,15 +79,55 @@ pub fn create_evidence_idempotent(
         LinkTypes::EvidenceIdentity,
         (),
     )?;
-    Ok(CreateEvidenceResult {
-        action_hash,
-        created: true,
-    })
+    Ok(CreateEvidenceResult { action_hash, created: true })
 }
 
 #[hdk_extern]
 pub fn create_claim(claim: ClaimEntry) -> ExternResult<ActionHash> {
     create_entry(EntryTypes::Claim(claim))
+}
+
+// Candidate vNext CRUD. Integrity zome validates each object. No function below
+// evaluates ecological truth, creates PRU value, or certifies a claim.
+#[hdk_extern]
+pub fn create_place_context(entry: PlaceContextEntry) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::PlaceContext(entry))
+}
+
+#[hdk_extern]
+pub fn create_system_boundary(entry: SystemBoundaryEntry) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::SystemBoundary(entry))
+}
+
+#[hdk_extern]
+pub fn create_observation(entry: ObservationEntry) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::Observation(entry))
+}
+
+#[hdk_extern]
+pub fn create_relationship_assertion(
+    entry: RelationshipAssertionEntry,
+) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::RelationshipAssertion(entry))
+}
+
+#[hdk_extern]
+pub fn create_disturbance(entry: DisturbanceEntry) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::Disturbance(entry))
+}
+
+#[hdk_extern]
+pub fn create_review_attestation(
+    entry: ReviewAttestationEntry,
+) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::ReviewAttestation(entry))
+}
+
+#[hdk_extern]
+pub fn create_semantic_claim_ref(
+    entry: SemanticClaimRefEntry,
+) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::SemanticClaimRef(entry))
 }
 
 #[hdk_extern]
@@ -117,7 +141,6 @@ pub struct EvidenceRecordView {
     pub evidence: MrvEvidenceEntry,
 }
 
-/// Independently query persisted evidence linked to one subject.
 #[hdk_extern]
 pub fn get_subject_evidence(subject_id: String) -> ExternResult<Vec<EvidenceRecordView>> {
     let links = get_links(
@@ -132,23 +155,13 @@ pub fn get_subject_evidence(subject_id: String) -> ExternResult<Vec<EvidenceReco
         if let Some(action_hash) = link.target.into_action_hash() {
             if let Some(record) = get(action_hash.clone(), GetOptions::default())? {
                 if let Ok(Some(evidence)) = record.entry().to_app_option::<MrvEvidenceEntry>() {
-                    records.push(EvidenceRecordView {
-                        action_hash,
-                        evidence,
-                    });
+                    records.push(EvidenceRecordView { action_hash, evidence });
                 }
             }
         }
     }
     Ok(records)
 }
-
-// ---------------------------------------------------------------------------
-// The evidence spine: assess ADMISSIBILITY (binary), never value.
-// Given a legal-gate decision and a subject's MRV evidence, returns whether the
-// evidence may proceed to off-runtime value-analysis. Returns a bool — there is
-// no value field, no PRU, no amount. value stays prose-only, suspended at zero.
-// ---------------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AssessInput {
@@ -160,7 +173,6 @@ pub struct AssessInput {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AssessResult {
-    /// Binary admissibility (LegalGate ∧ MRVGate). NOT a value.
     pub admissible: bool,
     pub authority_boundary: String,
 }
@@ -188,8 +200,6 @@ pub struct SubjectAssessInput {
     pub require_reviewer: bool,
 }
 
-/// Source-chain/DHT spine: gather a subject's persisted MRV evidence (via links) and
-/// run the binary admissibility gate over it. Returns a bool, never a value.
 #[hdk_extern]
 pub fn assess_subject_admissibility(input: SubjectAssessInput) -> ExternResult<AssessResult> {
     let evidence: Vec<_> = get_subject_evidence(input.subject_id)?
