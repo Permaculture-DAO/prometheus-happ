@@ -51,4 +51,16 @@ ls -lh \
   ui.zip
 
 echo
+echo "=== SHA256 ARTIFACT MANIFEST ==="
+sha256sum \
+  dnas/hearth/wasm/zome_integrity.wasm \
+  dnas/hearth/wasm/zome_coordinator.wasm \
+  dnas/hearth/hearth.dna \
+  hearth_prometheus.happ \
+  hearth_prometheus_web.webhapp \
+  ui.zip \
+  > P2_2B_ARTIFACT_SHA256SUMS.txt
+cat P2_2B_ARTIFACT_SHA256SUMS.txt
+
+echo
 echo "BUILD_PACK_LOCAL: PASSED"
