@@ -16,3 +16,5 @@ holochain = { version = "0.6", features = ["sweettest"] }
 holo_hash = "0.6"
 tokio = { version = "1", features = ["full"] }
 serde_json = "1"
+
+holochain_types = "0.6"
