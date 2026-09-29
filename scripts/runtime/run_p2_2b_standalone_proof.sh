@@ -77,10 +77,11 @@ grep -q 'Conflicted passing review rejected by integrity validation' "$EVIDENCE_
 grep -q '"expected_decision": "blocked"' "$EVIDENCE_DIR/50_appwebsocket_proof.log"
 grep -q '"authority_boundary": "admissibility_only_no_value"' "$EVIDENCE_DIR/50_appwebsocket_proof.log"
 
+echo "P2.2B-2: PASS" | tee -a "$EVIDENCE_DIR/00_run.log"
+
 (
   cd "$EVIDENCE_DIR"
   sha256sum ./* > SHA256SUMS.txt
 )
 
-echo "P2.2B-2: PASS" | tee -a "$EVIDENCE_DIR/00_run.log"
 echo "evidence_dir=$EVIDENCE_DIR"
