@@ -191,6 +191,81 @@ impl ReviewAttestation {
     }
 }
 
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EvidencePackage {
+    pub id: String,
+    pub subject_id: String,
+    pub claim_uids: Vec<String>,
+    pub place_context_version: String,
+    pub system_boundary_version: String,
+    pub observation_refs: Vec<String>,
+    pub method_refs: Vec<String>,
+    pub raw_data_hashes: Vec<String>,
+    pub transformed_data_hashes: Vec<String>,
+    pub package_hash: String,
+    pub missing_data_statement: String,
+    pub adverse_event_statement: String,
+    pub created_at: i64,
+}
+
+impl EvidencePackage {
+    pub fn is_valid(&self) -> bool {
+        !self.id.is_empty()
+            && !self.subject_id.is_empty()
+            && !self.claim_uids.is_empty()
+            && self.claim_uids.iter().all(|uid| valid_semantic_claim_uid(uid))
+            && !self.place_context_version.is_empty()
+            && !self.system_boundary_version.is_empty()
+            && !self.observation_refs.is_empty()
+            && !self.method_refs.is_empty()
+            && !self.raw_data_hashes.is_empty()
+            && !self.package_hash.is_empty()
+            && !self.missing_data_statement.is_empty()
+            && !self.adverse_event_statement.is_empty()
+            && self.created_at > 0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AdmissibilityDecision {
+    pub id: String,
+    pub subject_id: String,
+    pub claim_uid: String,
+    pub evidence_package_refs: Vec<String>,
+    pub review_attestation_refs: Vec<String>,
+    pub legal_gate: bool,
+    pub mrv_gate: bool,
+    pub confidence: f64,
+    pub decision: String,
+    pub blockers: Vec<String>,
+    pub decided_at: i64,
+    pub authority_boundary: String,
+}
+
+impl AdmissibilityDecision {
+    pub fn is_valid(&self) -> bool {
+        let decision_ok = matches!(self.decision.as_str(), "admissible" | "blocked" | "pending");
+        let authority_ok = self.authority_boundary == "admissibility_only_no_value";
+        let consistency_ok = match self.decision.as_str() {
+            "admissible" => self.legal_gate && self.mrv_gate && self.blockers.is_empty(),
+            "blocked" => !self.legal_gate || !self.mrv_gate || !self.blockers.is_empty(),
+            "pending" => true,
+            _ => false,
+        };
+        !self.id.is_empty()
+            && !self.subject_id.is_empty()
+            && valid_semantic_claim_uid(&self.claim_uid)
+            && !self.evidence_package_refs.is_empty()
+            && self.confidence >= 0.0
+            && self.confidence <= 1.0
+            && decision_ok
+            && consistency_ok
+            && self.decided_at > 0
+            && authority_ok
+    }
+}
+
 pub fn valid_semantic_claim_uid(uid: &str) -> bool {
     uid.starts_with("prometheus.")
         && uid.len() > "prometheus.".len()
