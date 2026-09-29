@@ -198,7 +198,17 @@ try {
   };
   console.log(JSON.stringify(result, null, 2));
   console.log(process.exitCode ? "P2.2B: FAIL" : "P2.2B: PASS");
+} catch (error) {
+  process.exitCode = 1;
+  console.error("P2.2B: unexpected verifier failure");
+  console.error(error instanceof Error ? (error.stack || error.message) : String(error));
 } finally {
-  await client.close();
-  process.exit(process.exitCode || 0);
+  try {
+    await client.close();
+  } catch (closeError) {
+    process.exitCode = 1;
+    console.error("P2.2B: runtime client close failure");
+    console.error(closeError instanceof Error ? (closeError.stack || closeError.message) : String(closeError));
+  }
 }
+process.exitCode = process.exitCode || 0;
