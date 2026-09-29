@@ -2,10 +2,31 @@
 // Uses an in-process Holochain SweetConductor with the exact wasm artifacts built
 // from this repository branch. Synthetic TEST data only.
 
+use holochain::conductor::{api::error::ConductorApiError, CellError};
+use holochain::core::workflow::WorkflowError;
 use holochain::sweettest::*;
 use holo_hash::ActionHash;
 use holochain_types::prelude::*;
 use std::path::PathBuf;
+
+// Query rows contain MessagePack binary hashes, so the outer response must be typed.
+#[derive(Debug, serde::Deserialize)]
+struct PackageRecord {
+    action_hash: ActionHash,
+    package: serde_json::Value,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct ReviewRecord {
+    action_hash: ActionHash,
+    review: serde_json::Value,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct DecisionRecord {
+    action_hash: ActionHash,
+    decision: serde_json::Value,
+}
 
 async fn dna_from_local_wasm() -> DnaFile {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
@@ -28,18 +49,20 @@ async fn dna_from_local_wasm() -> DnaFile {
 
     let integrity = IntegrityZome::new(
         integrity_name.clone(),
-        ZomeDef::Wasm(WasmZomeDef {
+        ZomeDef::Wasm(WasmZome {
             wasm_hash: integrity_hash,
             dependencies: vec![],
-        }),
+        })
+        .into(),
     );
 
     let coordinator = CoordinatorZome::new(
         coordinator_name,
-        ZomeDef::Wasm(WasmZomeDef {
+        ZomeDef::Wasm(WasmZome {
             wasm_hash: coordinator_hash,
             dependencies: vec![integrity_name],
-        }),
+        })
+        .into(),
     );
 
     SweetDnaFile::unique_from_zomes(
@@ -130,9 +153,8 @@ async fn p2_2b_evidence_spine_reconstructs_on_live_conductor() {
     })).await;
     assert!(!package.to_string().is_empty());
 
-    let packages: serde_json::Value = conductor.call(&zome, "get_subject_evidence_packages", subject).await;
-    let rows = packages.as_array().expect("package query must return array");
-    assert!(rows.iter().any(|r| r["package"]["id"] == package_id));
+    let packages: Vec<PackageRecord> = conductor.call(&zome, "get_subject_evidence_packages", subject).await;
+    assert!(packages.iter().any(|r| r.action_hash == package && r.package["id"] == package_id));
 
     let review: ActionHash = conductor.call(&zome, "create_review_attestation", serde_json::json!({
         "id":review_id,"reviewer_id":"reviewer-TEST","scope":"synthetic digital lineage only",
@@ -142,9 +164,8 @@ async fn p2_2b_evidence_spine_reconstructs_on_live_conductor() {
     })).await;
     assert!(!review.to_string().is_empty());
 
-    let reviews: serde_json::Value = conductor.call(&zome, "get_package_reviews", package_id).await;
-    let rows = reviews.as_array().expect("review query must return array");
-    assert!(rows.iter().any(|r| r["review"]["id"] == review_id));
+    let reviews: Vec<ReviewRecord> = conductor.call(&zome, "get_package_reviews", package_id).await;
+    assert!(reviews.iter().any(|r| r.action_hash == review && r.review["id"] == review_id));
 
     let decision: ActionHash = conductor.call(&zome, "create_admissibility_decision", serde_json::json!({
         "id":decision_id,"subject_id":subject,"claim_uid":claim_uid,
@@ -155,21 +176,35 @@ async fn p2_2b_evidence_spine_reconstructs_on_live_conductor() {
     })).await;
     assert!(!decision.to_string().is_empty());
 
-    let decisions: serde_json::Value = conductor.call(&zome, "get_claim_admissibility_decisions", claim_uid).await;
-    let rows = decisions.as_array().expect("decision query must return array");
-    assert!(rows.iter().any(|r|
-        r["decision"]["id"] == decision_id &&
-        r["decision"]["decision"] == "blocked" &&
-        r["decision"]["authority_boundary"] == "admissibility_only_no_value"
+    let decisions: Vec<DecisionRecord> = conductor.call(&zome, "get_claim_admissibility_decisions", claim_uid).await;
+    assert!(decisions.iter().any(|r|
+        r.action_hash == decision &&
+        r.decision["id"] == decision_id &&
+        r.decision["decision"] == "blocked" &&
+        r.decision["authority_boundary"] == "admissibility_only_no_value"
     ));
 
     let bad_review: Result<ActionHash, _> = conductor.call_fallible(&zome, "create_review_attestation", serde_json::json!({
         "id":"rev-TEST-conflicted","reviewer_id":"reviewer-conflicted",
-        "scope":"same synthetic scope","coi_status":"conflicted","subject_refs":[package_id],
+        "scope":"synthetic digital lineage only","coi_status":"conflicted","subject_refs":[package_id],
         "decision":"pass","limitations":"must be rejected","independent_for_scope":false,
         "reviewed_at":now
     })).await;
-    assert!(bad_review.is_err(), "conflicted reviewer pass must be rejected");
+    let error = bad_review.expect_err("conflicted reviewer pass must be rejected");
+    assert!(
+        matches!(
+            &error,
+            ConductorApiError::CellError(CellError::WorkflowError(workflow))
+                if matches!(workflow.as_ref(), WorkflowError::SourceChainError(_))
+        ),
+        "expected a source-chain validation failure, got: {error:?}"
+    );
+    assert!(
+        format!("{error:?}").contains("ReviewAttestation violates COI/scope invariants"),
+        "expected the review validation rejection, got: {error:?}"
+    );
+    let reviews: Vec<ReviewRecord> = conductor.call(&zome, "get_package_reviews", package_id).await;
+    assert!(reviews.iter().all(|r| r.review["id"] != "rev-TEST-conflicted"));
 
     println!("{}", serde_json::json!({
         "schema_version":"p2.2b-sweetconductor-0.1",
