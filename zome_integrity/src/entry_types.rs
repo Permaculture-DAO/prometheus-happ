@@ -11,8 +11,8 @@ use crate::claim::{Claim, ClaimStatus};
 use crate::mrv::MrvEvidence;
 use crate::ohe::{Ohe, OheStatus};
 use crate::semantic_vnext::{
-    valid_semantic_claim_uid, Disturbance, ObservationVnext, PlaceContext,
-    RelationshipAssertion, ReviewAttestation, SystemBoundary,
+    valid_semantic_claim_uid, AdmissibilityDecision, Disturbance, EvidencePackage,
+    ObservationVnext, PlaceContext, RelationshipAssertion, ReviewAttestation, SystemBoundary,
 };
 use crate::valueflows::ids::AgentId;
 
@@ -325,6 +325,88 @@ impl ReviewAttestationEntry {
     }
 }
 
+// ---------- EVIDENCE PACKAGE ----------
+#[hdk_entry_helper]
+#[derive(Clone)]
+pub struct EvidencePackageEntry {
+    pub id: String,
+    pub subject_id: String,
+    pub claim_uids: Vec<String>,
+    pub place_context_version: String,
+    pub system_boundary_version: String,
+    pub observation_refs: Vec<String>,
+    pub method_refs: Vec<String>,
+    pub raw_data_hashes: Vec<String>,
+    pub transformed_data_hashes: Vec<String>,
+    pub package_hash: String,
+    pub missing_data_statement: String,
+    pub adverse_event_statement: String,
+    pub created_at: i64,
+}
+impl EvidencePackageEntry {
+    fn to_domain(&self) -> EvidencePackage {
+        EvidencePackage {
+            id: self.id.clone(),
+            subject_id: self.subject_id.clone(),
+            claim_uids: self.claim_uids.clone(),
+            place_context_version: self.place_context_version.clone(),
+            system_boundary_version: self.system_boundary_version.clone(),
+            observation_refs: self.observation_refs.clone(),
+            method_refs: self.method_refs.clone(),
+            raw_data_hashes: self.raw_data_hashes.clone(),
+            transformed_data_hashes: self.transformed_data_hashes.clone(),
+            package_hash: self.package_hash.clone(),
+            missing_data_statement: self.missing_data_statement.clone(),
+            adverse_event_statement: self.adverse_event_statement.clone(),
+            created_at: self.created_at,
+        }
+    }
+    pub fn validate_entry(&self) -> ValidateCallbackResult {
+        if self.to_domain().is_valid() { ValidateCallbackResult::Valid }
+        else { ValidateCallbackResult::Invalid("EvidencePackage violates provenance/context invariants".into()) }
+    }
+}
+
+// ---------- ADMISSIBILITY DECISION ----------
+#[hdk_entry_helper]
+#[derive(Clone)]
+pub struct AdmissibilityDecisionEntry {
+    pub id: String,
+    pub subject_id: String,
+    pub claim_uid: String,
+    pub evidence_package_refs: Vec<String>,
+    pub review_attestation_refs: Vec<String>,
+    pub legal_gate: bool,
+    pub mrv_gate: bool,
+    pub confidence: f64,
+    pub decision: String,
+    pub blockers: Vec<String>,
+    pub decided_at: i64,
+    pub authority_boundary: String,
+}
+impl AdmissibilityDecisionEntry {
+    fn to_domain(&self) -> AdmissibilityDecision {
+        AdmissibilityDecision {
+            id: self.id.clone(),
+            subject_id: self.subject_id.clone(),
+            claim_uid: self.claim_uid.clone(),
+            evidence_package_refs: self.evidence_package_refs.clone(),
+            review_attestation_refs: self.review_attestation_refs.clone(),
+            legal_gate: self.legal_gate,
+            mrv_gate: self.mrv_gate,
+            confidence: self.confidence,
+            decision: self.decision.clone(),
+            blockers: self.blockers.clone(),
+            decided_at: self.decided_at,
+            authority_boundary: self.authority_boundary.clone(),
+        }
+    }
+    pub fn validate_entry(&self) -> ValidateCallbackResult {
+        if self.to_domain().is_valid() { ValidateCallbackResult::Valid }
+        else { ValidateCallbackResult::Invalid("AdmissibilityDecision violates gate/authority invariants".into()) }
+    }
+}
+
 // ---------- SEMANTIC CLAIM ID ----------
 #[hdk_entry_helper]
 #[derive(Clone)]
@@ -355,6 +437,8 @@ pub enum EntryTypes {
     #[entry_type(visibility = "public")] RelationshipAssertion(RelationshipAssertionEntry),
     #[entry_type(visibility = "public")] Disturbance(DisturbanceEntry),
     #[entry_type(visibility = "public")] ReviewAttestation(ReviewAttestationEntry),
+    #[entry_type(visibility = "public")] EvidencePackage(EvidencePackageEntry),
+    #[entry_type(visibility = "public")] AdmissibilityDecision(AdmissibilityDecisionEntry),
     #[entry_type(visibility = "public")] SemanticClaimRef(SemanticClaimRefEntry),
 }
 
@@ -379,6 +463,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
             EntryTypes::RelationshipAssertion(e) => e.validate_entry(),
             EntryTypes::Disturbance(e) => e.validate_entry(),
             EntryTypes::ReviewAttestation(e) => e.validate_entry(),
+            EntryTypes::EvidencePackage(e) => e.validate_entry(),
+            EntryTypes::AdmissibilityDecision(e) => e.validate_entry(),
             EntryTypes::SemanticClaimRef(e) => e.validate_entry(),
         };
         return Ok(res);
