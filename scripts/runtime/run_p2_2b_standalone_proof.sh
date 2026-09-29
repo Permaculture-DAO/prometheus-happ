@@ -24,7 +24,7 @@ cp P2_2B_ARTIFACT_SHA256SUMS.txt "$EVIDENCE_DIR/"
 scripts/runtime/create_fresh_sandbox.sh 2>&1 | tee "$EVIDENCE_DIR/20_sandbox_generate.log"
 
 pushd .runtime/sandbox-main-runtime >/dev/null
-hc sandbox -f "$ADMIN_PORT" run >"../../../$EVIDENCE_DIR/30_conductor.log" 2>&1 &
+hc sandbox -f "$ADMIN_PORT" run >"../../$EVIDENCE_DIR/30_conductor.log" 2>&1 &
 CONDUCTOR_PID=$!
 popd >/dev/null
 
