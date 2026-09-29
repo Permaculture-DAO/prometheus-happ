@@ -446,6 +446,10 @@ pub enum EntryTypes {
 pub enum LinkTypes {
     SubjectToEvidence,
     EvidenceIdentity,
+    SubjectToEvidencePackage,
+    EvidencePackageIdentity,
+    EvidencePackageToReview,
+    ClaimToAdmissibilityDecision,
 }
 
 #[hdk_extern]
