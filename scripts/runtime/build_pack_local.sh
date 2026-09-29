@@ -12,20 +12,20 @@ node --version
 
 echo
 echo "=== RUST CHECK ==="
-cargo check
+cargo check --locked
 
 echo
 echo "=== WASM BUILD ==="
-cargo build --target wasm32-unknown-unknown
+cargo build --locked --release --target wasm32-unknown-unknown
 
 echo
 echo "=== PREPARE DNA WASM ==="
 mkdir -p dnas/hearth/wasm
 
-cp target/wasm32-unknown-unknown/debug/zome_integrity.wasm \
+cp target/wasm32-unknown-unknown/release/zome_integrity.wasm \
    dnas/hearth/wasm/zome_integrity.wasm
 
-cp target/wasm32-unknown-unknown/debug/zome_coordinator.wasm \
+cp target/wasm32-unknown-unknown/release/zome_coordinator.wasm \
    dnas/hearth/wasm/zome_coordinator.wasm
 
 echo
