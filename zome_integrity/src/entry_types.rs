@@ -308,6 +308,7 @@ pub struct ReviewAttestationEntry {
     pub subject_refs: Vec<String>,
     pub decision: String,
     pub limitations: String,
+    pub independent_for_scope: bool,
     pub reviewed_at: i64,
 }
 impl ReviewAttestationEntry {
@@ -316,6 +317,7 @@ impl ReviewAttestationEntry {
             id: self.id.clone(), reviewer_id: self.reviewer_id.clone(), scope: self.scope.clone(),
             coi_status: self.coi_status.clone(), subject_refs: self.subject_refs.clone(),
             decision: self.decision.clone(), limitations: self.limitations.clone(),
+            independent_for_scope: self.independent_for_scope,
             reviewed_at: self.reviewed_at,
         }
     }
