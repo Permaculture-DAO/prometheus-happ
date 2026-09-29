@@ -19,6 +19,15 @@ fn evidence_identity_base(evidence: &MrvEvidenceEntry) -> ExternResult<AnyLinkab
     .into())
 }
 
+
+fn package_base(package_id: &str) -> ExternResult<AnyLinkableHash> {
+    Ok(Path::from(format!("evidence_package:{package_id}")).path_entry_hash()?.into())
+}
+
+fn claim_base(claim_uid: &str) -> ExternResult<AnyLinkableHash> {
+    Ok(Path::from(format!("claim_uid:{claim_uid}")).path_entry_hash()?.into())
+}
+
 #[hdk_extern]
 fn init() -> ExternResult<InitCallbackResult> {
     Ok(InitCallbackResult::Pass)
@@ -120,21 +129,54 @@ pub fn create_disturbance(entry: DisturbanceEntry) -> ExternResult<ActionHash> {
 pub fn create_review_attestation(
     entry: ReviewAttestationEntry,
 ) -> ExternResult<ActionHash> {
-    create_entry(EntryTypes::ReviewAttestation(entry))
+    let package_refs = entry.subject_refs.clone();
+    let action_hash = create_entry(EntryTypes::ReviewAttestation(entry))?;
+    for package_id in package_refs {
+        create_link(
+            package_base(&package_id)?,
+            action_hash.clone(),
+            LinkTypes::EvidencePackageToReview,
+            (),
+        )?;
+    }
+    Ok(action_hash)
 }
 
 #[hdk_extern]
 pub fn create_evidence_package(
     entry: EvidencePackageEntry,
 ) -> ExternResult<ActionHash> {
-    create_entry(EntryTypes::EvidencePackage(entry))
+    let subject_id = entry.subject_id.clone();
+    let package_id = entry.id.clone();
+    let action_hash = create_entry(EntryTypes::EvidencePackage(entry))?;
+    create_link(
+        subject_base(&subject_id)?,
+        action_hash.clone(),
+        LinkTypes::SubjectToEvidencePackage,
+        (),
+    )?;
+    create_link(
+        package_base(&package_id)?,
+        action_hash.clone(),
+        LinkTypes::EvidencePackageIdentity,
+        (),
+    )?;
+    Ok(action_hash)
 }
 
 #[hdk_extern]
 pub fn create_admissibility_decision(
     entry: AdmissibilityDecisionEntry,
 ) -> ExternResult<ActionHash> {
-    create_entry(EntryTypes::AdmissibilityDecision(entry))
+    let claim_uid = entry.claim_uid.clone();
+    let action_hash = create_entry(EntryTypes::AdmissibilityDecision(entry))?;
+    create_link(
+        claim_base(&claim_uid)?,
+        action_hash.clone(),
+        LinkTypes::ClaimToAdmissibilityDecision,
+        (),
+    )?;
+    Ok(action_hash)
 }
 
 #[hdk_extern]
@@ -170,6 +212,93 @@ pub fn get_subject_evidence(subject_id: String) -> ExternResult<Vec<EvidenceReco
             if let Some(record) = get(action_hash.clone(), GetOptions::default())? {
                 if let Ok(Some(evidence)) = record.entry().to_app_option::<MrvEvidenceEntry>() {
                     records.push(EvidenceRecordView { action_hash, evidence });
+                }
+            }
+        }
+    }
+    Ok(records)
+}
+
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EvidencePackageRecordView {
+    pub action_hash: ActionHash,
+    pub package: EvidencePackageEntry,
+}
+
+#[hdk_extern]
+pub fn get_subject_evidence_packages(subject_id: String) -> ExternResult<Vec<EvidencePackageRecordView>> {
+    let links = get_links(
+        LinkQuery::new(
+            subject_base(&subject_id)?,
+            LinkTypes::SubjectToEvidencePackage.try_into_filter()?,
+        ),
+        GetStrategy::default(),
+    )?;
+    let mut records = Vec::new();
+    for link in links {
+        if let Some(action_hash) = link.target.into_action_hash() {
+            if let Some(record) = get(action_hash.clone(), GetOptions::default())? {
+                if let Ok(Some(package)) = record.entry().to_app_option::<EvidencePackageEntry>() {
+                    records.push(EvidencePackageRecordView { action_hash, package });
+                }
+            }
+        }
+    }
+    Ok(records)
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ReviewRecordView {
+    pub action_hash: ActionHash,
+    pub review: ReviewAttestationEntry,
+}
+
+#[hdk_extern]
+pub fn get_package_reviews(package_id: String) -> ExternResult<Vec<ReviewRecordView>> {
+    let links = get_links(
+        LinkQuery::new(
+            package_base(&package_id)?,
+            LinkTypes::EvidencePackageToReview.try_into_filter()?,
+        ),
+        GetStrategy::default(),
+    )?;
+    let mut records = Vec::new();
+    for link in links {
+        if let Some(action_hash) = link.target.into_action_hash() {
+            if let Some(record) = get(action_hash.clone(), GetOptions::default())? {
+                if let Ok(Some(review)) = record.entry().to_app_option::<ReviewAttestationEntry>() {
+                    records.push(ReviewRecordView { action_hash, review });
+                }
+            }
+        }
+    }
+    Ok(records)
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AdmissibilityDecisionRecordView {
+    pub action_hash: ActionHash,
+    pub decision: AdmissibilityDecisionEntry,
+}
+
+#[hdk_extern]
+pub fn get_claim_admissibility_decisions(
+    claim_uid: String,
+) -> ExternResult<Vec<AdmissibilityDecisionRecordView>> {
+    let links = get_links(
+        LinkQuery::new(
+            claim_base(&claim_uid)?,
+            LinkTypes::ClaimToAdmissibilityDecision.try_into_filter()?,
+        ),
+        GetStrategy::default(),
+    )?;
+    let mut records = Vec::new();
+    for link in links {
+        if let Some(action_hash) = link.target.into_action_hash() {
+            if let Some(record) = get(action_hash.clone(), GetOptions::default())? {
+                if let Ok(Some(decision)) = record.entry().to_app_option::<AdmissibilityDecisionEntry>() {
+                    records.push(AdmissibilityDecisionRecordView { action_hash, decision });
                 }
             }
         }
