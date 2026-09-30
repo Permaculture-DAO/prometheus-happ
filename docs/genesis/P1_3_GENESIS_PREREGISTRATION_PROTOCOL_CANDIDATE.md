@@ -1,6 +1,6 @@
 # PROMETHEUS P1.3 — Genesis Pilot Preregistration Protocol Candidate
 
-Status: **CANDIDATE / SITE IDENTITY RESOLVED, BOUNDARY GEOMETRY NOT YET FROZEN**  
+Status: **CANDIDATE / SITE IDENTITY + SURVEYED EXPERIMENTAL SYSTEM BOUNDARY FROZEN**  
 Date: 2026-09-30  
 Data/claim discipline: evidence-led, falsifiable, auditable.
 
@@ -74,7 +74,7 @@ The repeated final DXF vertex equals V01 and closes the outline.
 
 This DXF resolves the **surveyed physical site geometry** and its measured area. It does not, by itself, prove that the surveyed outline is legally identical to the cadastral polygon. The drawing itself distinguishes `sup. catastale` from `sup. reale` and includes the annotation `confine ipotetico catastale`; therefore the cadastral/legal boundary remains a separate evidence class.
 
-For the Genesis experiment, this surveyed outline is eligible to become the canonical physical `SystemBoundary` after the treatment-area decision is frozen. It must not be silently relabelled as the authoritative cadastral polygon.
+For the Genesis experiment, the user has confirmed that the entire surveyed DXF outline is the Genesis Pilot area. The DXF outline A8D is therefore frozen as the canonical physical `ExperimentalSystemBoundary` for the pilot (3360.875 m²; perimeter 257.426 m). It must not be silently relabelled as the authoritative cadastral polygon.
 
 ## 4. Boundary state
 
@@ -84,7 +84,7 @@ For the Genesis experiment, this surveyed outline is eligible to become the cano
 | locator point | RESOLVED | point evidence only |
 | surveyed physical-site polygon | RESOLVED | DXF outline A8D; 3360.875 m²; 257.426 m perimeter |
 | legal cadastral polygon | OPEN | cadastral identity resolved, but legal/vector boundary still requires authoritative evidence |
-| experimental treatment polygon | OPEN | may equal surveyed physical-site polygon, but must be explicitly declared and frozen before field baseline |
+| experimental treatment polygon | FROZEN | full surveyed DXF outline A8D; 3360.875 m²; user confirmed entire surveyed polygon is the Genesis Pilot area |
 | comparator/reference polygon | OPEN | must be spatially explicit and preregistered |
 | contour sampling rectangle | EVIDENCE_ONLY | cannot substitute for legal or experimental boundary |
 
@@ -204,8 +204,7 @@ Cryptographic integrity does not prove physical truth.
 The following remain blocking:
 
 1. authoritative/verified cadastral polygon or explicit acceptance that cadastral geometry remains a separate unresolved legal evidence layer;
-2. explicit declaration whether the DXF surveyed outline (3360.875 m²) is the full Genesis treatment boundary; if not, exact treatment polygon;
-3. exact comparator/reference polygon;
+2. exact comparator/reference polygon;
 4. baseline start date and observation calendar;
 5. primary outcome set, methods, units, instruments and sampling locations;
 6. intervention start date and intervention plan;
