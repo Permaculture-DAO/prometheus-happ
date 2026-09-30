@@ -7,9 +7,7 @@ Date: 2026-09-30
 
 User supplied the vector design file:
 
-`progetto irriguo.dxf`
-
-This is materially different from the raster image previously embedded in the technical report: the irrigation project is now available as vector evidence.
+`progetto irriguo.dxf`\n\nSHA-256: `1c99461566ff015f61db8aa1f922c7d02e838a568a1356db1c2cd06c7b48222f`\n\nThis is materially different from the raster image previously embedded in the technical report: the irrigation project is now available as vector evidence.
 
 ## 2. Vector feature anchors confirmed
 
