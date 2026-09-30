@@ -96,6 +96,7 @@ function runHcZomeCallWithPassphrase(dnaHash) {
     const child = spawn("hc", [
       "sandbox",
       "zome-call",
+      "--piped",
       "--running",
       String(HOLOCHAIN_ADMIN_PORT),
       APP_ID,
