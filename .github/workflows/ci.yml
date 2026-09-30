@@ -13,9 +13,11 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2.9.1
       - name: wasm build (workspace)
-        run: cargo build --target wasm32-unknown-unknown --workspace
+        run: cargo build --locked --target wasm32-unknown-unknown --workspace
       - name: unit tests (integrity domain)
-        run: cargo test -p zome_integrity
-      # .cargo/config.toml carries -C link-arg=--allow-undefined so the conductor
-      # host functions (__hc__*) remain wasm imports. Conductor smoke test is a
-      # local/manual runbook step (ops-docs), not run in CI.
+        run: cargo test --locked -p zome_integrity
+      - name: P2.2B in-process SweetConductor reconstruction
+        run: cargo test --locked --manifest-path integration_tests/Cargo.toml --test conductor -- --nocapture
+      # The CI proof uses Holochain SweetConductor in-process with the exact wasm
+      # artifacts built from this branch. The standalone AppWebsocket/sandbox proof
+      # remains an operational acceptance step in ops-docs.

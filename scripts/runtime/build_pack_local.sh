@@ -12,20 +12,20 @@ node --version
 
 echo
 echo "=== RUST CHECK ==="
-cargo check
+cargo check --locked
 
 echo
 echo "=== WASM BUILD ==="
-cargo build --target wasm32-unknown-unknown
+cargo build --locked --release --target wasm32-unknown-unknown
 
 echo
 echo "=== PREPARE DNA WASM ==="
 mkdir -p dnas/hearth/wasm
 
-cp target/wasm32-unknown-unknown/debug/zome_integrity.wasm \
+cp target/wasm32-unknown-unknown/release/zome_integrity.wasm \
    dnas/hearth/wasm/zome_integrity.wasm
 
-cp target/wasm32-unknown-unknown/debug/zome_coordinator.wasm \
+cp target/wasm32-unknown-unknown/release/zome_coordinator.wasm \
    dnas/hearth/wasm/zome_coordinator.wasm
 
 echo
@@ -49,6 +49,18 @@ ls -lh \
   hearth_prometheus.happ \
   hearth_prometheus_web.webhapp \
   ui.zip
+
+echo
+echo "=== SHA256 ARTIFACT MANIFEST ==="
+sha256sum \
+  dnas/hearth/wasm/zome_integrity.wasm \
+  dnas/hearth/wasm/zome_coordinator.wasm \
+  dnas/hearth/hearth.dna \
+  hearth_prometheus.happ \
+  hearth_prometheus_web.webhapp \
+  ui.zip \
+  > P2_2B_ARTIFACT_SHA256SUMS.txt
+cat P2_2B_ARTIFACT_SHA256SUMS.txt
 
 echo
 echo "BUILD_PACK_LOCAL: PASSED"

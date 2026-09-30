@@ -12,7 +12,8 @@
     "dry-run": "PROMETHEUS_DRY_RUN=1 node src/ingest.mjs",
     "smoke": "node scripts/smoke.mjs",
     "e2e": "node scripts/e2e_verify.mjs",
-    "wp4": "bash scripts/run_wp4.sh"
+    "wp4": "bash scripts/run_wp4.sh",
+    "e2e:p2.2b": "node scripts/p2_2_e2e_verify.mjs"
   },
   "dependencies": {
     "@holochain/client": "0.20.5",
