@@ -1,0 +1,94 @@
+{
+  "type": "FeatureCollection",
+  "name": "PROMETHEUS_EXT001_F250_P849_MINIMUM_COMPARATOR_CANDIDATE",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "candidate_id": "EXT-001-F250-P849",
+        "feature_role": "gross_candidate_frame",
+        "status": "DERIVED_PROVISIONAL",
+        "nominal_width_m": 30,
+        "nominal_height_m": 30,
+        "nominal_area_m2": 900,
+        "source_locator_lat": 36.79627423238698,
+        "source_locator_lon": 14.55050988807528,
+        "source_screenshot_sha256": "bbdb31adf1cfccd8024baa9957fcafbc89bfa8a4aff0b838c3a07685ba69d69a",
+        "boundary_note": "Not the authoritative cadastral polygon"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              14.55034181788665,
+              36.79640939927191
+            ],
+            [
+              14.550677958263911,
+              36.79640939927191
+            ],
+            [
+              14.550677957673305,
+              36.79613906526148
+            ],
+            [
+              14.550341818477257,
+              36.79613906526148
+            ],
+            [
+              14.55034181788665,
+              36.79640939927191
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "candidate_id": "EXT-001-F250-P849",
+        "feature_role": "analysis_core",
+        "status": "DERIVED_PROVISIONAL",
+        "nominal_width_m": 20,
+        "nominal_height_m": 20,
+        "nominal_area_m2": 400,
+        "nominal_internal_buffer_m": 5,
+        "boundary_note": "Confirmatory coordinates remain unfrozen"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              14.55039784134849,
+              36.796364343670334
+            ],
+            [
+              14.550621934802072,
+              36.796364343670334
+            ],
+            [
+              14.550621934539588,
+              36.79618412099671
+            ],
+            [
+              14.550397841610973,
+              36.79618412099671
+            ],
+            [
+              14.55039784134849,
+              36.796364343670334
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
