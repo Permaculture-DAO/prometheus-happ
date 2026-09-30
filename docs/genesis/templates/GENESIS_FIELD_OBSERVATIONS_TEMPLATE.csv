@@ -1,0 +1,1 @@
+observation_id,site_id,comparison_role,sampling_point_id,stratum_id,metric_uid,timestamp_local,latitude,longitude,crs,value,unit,method_id,instrument_id,operator_id,qa_status,disturbance_flag,missingness_status,photo_evidence_ref,source_file_hash,notes
