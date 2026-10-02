@@ -122,7 +122,10 @@ export function buildEvidence(reading, opts) {
     id,
     // TEST data is namespaced so it can never be mistaken for real evidence.
     subject_id: test ? `TEST-${subject_id}` : subject_id,
+    sensor_id,
     indicator,
+    evidence_class: test ? "TEST" : "REAL",
+    calibration_hash: calibration_hash || null,
     method_hash: calibration_hash || sha256(`sensor:${sensor_id}`), // TEST fallback only
     data_hash: sha256(raw ?? reading),                              // provenance of WHAT
     observed_at: Number(observed_at),
