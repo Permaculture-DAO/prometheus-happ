@@ -7,7 +7,7 @@
 // permit real (non-test) evidence. Real mode also requires an explicit subject allowlist.
 //
 // Topic: prometheus/<subject_id>/<indicator>  payload JSON:
-//   { sensor_id, value, unit, observed_at, calibration_hash?, confidence?, reviewer?, raw?, test? }
+//   { sensor_id, value, unit, observed_at, calibration_hash?, confidence?, raw?, test? }
 
 import { buildEvidence, EvidenceError, verifyReadingSignature } from "./evidence.mjs";
 import { submitEvidence, close } from "./conductor.mjs";
@@ -62,7 +62,9 @@ export function readingToEvidence(topic, msg, { defaultSubject } = {}) {
   if (REQUIRE_SIGNATURE) {
     if (!HMAC_KEY) throw new EvidenceError("signature verification key unavailable", "SIGNATURE_CONFIG");
     if (!body.signature) throw new EvidenceError("payload signature is required", "SIGNATURE_MISSING");
-    if (!verifyReadingSignature(body, HMAC_KEY)) throw new EvidenceError("payload signature is invalid", "SIGNATURE_INVALID");
+    if (!verifyReadingSignature(body, HMAC_KEY, { subject_id, indicator })) {
+      throw new EvidenceError("payload signature is invalid for routing envelope", "SIGNATURE_INVALID");
+    }
   }
 
   const resolvedSubject = subject_id || defaultSubject;
@@ -80,7 +82,7 @@ export function readingToEvidence(topic, msg, { defaultSubject } = {}) {
       raw: body.raw ?? body,
     },
     { subject_id: resolvedSubject, calibration_hash: body.calibration_hash,
-      confidence: body.confidence, reviewer: body.reviewer ?? null, test }
+      confidence: body.confidence, test }
   );
 }
 
