@@ -1,6 +1,9 @@
 use hdk::prelude::*;
 use zome_integrity::admissibility::admissible;
 use zome_integrity::entry_types::{ClaimEntry, EntryTypes, LinkTypes, MrvEvidenceEntry, OheEntry};
+use zome_integrity::real_data_control::{
+    dna_properties, CalibrationApprovalEntry, RealDataAuthorizationEntry, ReviewAttestationEntry,
+};
 
 /// Deterministic anchor for a subject (e.g. an OHE id) to hang evidence links on.
 /// Both writer and reader derive the same base from the subject id.
@@ -113,6 +116,46 @@ pub fn create_evidence_idempotent(
 #[hdk_extern]
 pub fn create_claim(claim: ClaimEntry) -> ExternResult<ActionHash> {
     create_entry(EntryTypes::Claim(claim))
+}
+
+#[hdk_extern]
+pub fn create_real_data_authorization(
+    authorization: RealDataAuthorizationEntry,
+) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::RealDataAuthorization(authorization))
+}
+
+#[hdk_extern]
+pub fn create_calibration_approval(
+    calibration: CalibrationApprovalEntry,
+) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::CalibrationApproval(calibration))
+}
+
+#[hdk_extern]
+pub fn create_review_attestation(
+    attestation: ReviewAttestationEntry,
+) -> ExternResult<ActionHash> {
+    create_entry(EntryTypes::ReviewAttestation(attestation))
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RealDataGateStatus {
+    pub real_data_enabled: bool,
+    pub authority_configured: bool,
+    pub approved_reviewer_count: usize,
+    pub authority_boundary: String,
+}
+
+#[hdk_extern]
+pub fn get_real_data_gate_status(_: ()) -> ExternResult<RealDataGateStatus> {
+    let props = dna_properties()?;
+    Ok(RealDataGateStatus {
+        real_data_enabled: props.real_data_enabled,
+        authority_configured: props.real_data_authority.is_some(),
+        approved_reviewer_count: props.approved_reviewers.len(),
+        authority_boundary: "persistence_control_plane_only_no_scientific_admission".into(),
+    })
 }
 
 #[hdk_extern]
