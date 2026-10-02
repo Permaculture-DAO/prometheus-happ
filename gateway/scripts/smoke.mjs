@@ -19,10 +19,11 @@ try {
   const calibrationHash = sha256("SE01-LS-01 calibration record v1");
 
   // 1. buildEvidence: provenance + deterministic id (test flag explicit)
-  const ev = buildEvidence(base, { subject_id: "ohe-1", calibration_hash: calibrationHash, confidence: 0.9, reviewer: "rev-1", test: false });
+  const ev = buildEvidence(base, { subject_id: "ohe-1", calibration_hash: calibrationHash, confidence: 0.9, test: false });
   assert.equal(ev.method_hash, calibrationHash);
   assert.equal(ev.data_hash, sha256({ v: 0.31 }));
-  assert.equal(ev.id, "SE01-LS-01:soil_moisture:1900000000");
+  assert.equal(ev.id, "ohe-1:SE01-LS-01:soil_moisture:1900000000");
+  assert.equal(ev.reviewer, null, "acquisition cannot self-attest reviewer");
 
   // 2. validation is fail-closed
   throwsCode(() => validateReading({ ...base, indicator: "unknown_x" }, { subject_id: "s", test: false }), "BAD_INDICATOR");
@@ -73,9 +74,27 @@ try {
 
   // 9. deterministic test HMAC support (enabled by deployment policy when configured).
   const signed = { ...base, signature: "" };
-  signed.signature = signReading(signed, "TEST-key");
-  assert.equal(verifyReadingSignature(signed, "TEST-key"), true);
-  assert.equal(verifyReadingSignature({ ...signed, value: 0.99 }, "TEST-key"), false);
+  const routing = { subject_id: "ohe-1", indicator: "soil_moisture" };
+  signed.signature = signReading(signed, "TEST-key", routing);
+  assert.equal(verifyReadingSignature(signed, "TEST-key", routing), true);
+  assert.equal(verifyReadingSignature({ ...signed, value: 0.99 }, "TEST-key", routing), false);
+  assert.equal(
+    verifyReadingSignature(signed, "TEST-key", { subject_id: "cmp-1", indicator: "soil_moisture" }),
+    false,
+    "signed payload cannot be rerouted to another subject"
+  );
+  assert.equal(
+    verifyReadingSignature(signed, "TEST-key", { subject_id: "ohe-1", indicator: "precipitation" }),
+    false,
+    "signed payload cannot be rerouted to another indicator"
+  );
+
+  // 10. reviewer supplied by a sensor/operator has no admissibility effect.
+  const selfReviewed = readingToEvidence(
+    "prometheus/ohe-1/soil_moisture",
+    JSON.stringify({ sensor_id: "SE01-LS-02", observed_at: 1900000300, value: 0.4, reviewer: "self-declared" })
+  );
+  assert.equal(selfReviewed.reviewer, null);
 
   console.log("GATEWAY_SMOKE: PASS");
   process.exit(0);
