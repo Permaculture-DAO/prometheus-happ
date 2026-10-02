@@ -2,7 +2,10 @@ manifest_version: "0"
 name: hearth
 integrity:
   network_seed: ~
-  properties: ~
+  properties:
+    real_data_enabled: false
+    real_data_authority: ~
+    approved_reviewers: []
   zomes:
     - name: zome_integrity
       path: ./wasm/zome_integrity.wasm
