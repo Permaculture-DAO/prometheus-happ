@@ -228,6 +228,26 @@ pub fn resolve_calibration(
         }
     }
 
+    // Any predecessor with multiple effective direct successors is a lineage fork.
+    // We do not resolve forks by timestamp, link order or "latest wins": ambiguity fails closed.
+    for (predecessor, _) in records.iter() {
+        let successor_count = records
+            .iter()
+            .filter(|(_, successor)| {
+                successor.previous_calibration.as_ref() == Some(predecessor)
+                    && successor.valid_from <= input.observed_at
+            })
+            .count();
+        if successor_count > 1 {
+            return Ok(CalibrationResolveResult {
+                status: "AMBIGUOUS".into(),
+                action_hash: None,
+                calibration_hash: None,
+                reason: "calibration lineage fork detected; multiple effective successors reference one predecessor".into(),
+            });
+        }
+    }
+
     let mut active = Vec::new();
     for (action_hash, entry) in records.iter() {
         if entry.status != "APPROVED"
