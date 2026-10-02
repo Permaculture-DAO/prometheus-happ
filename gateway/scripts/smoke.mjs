@@ -20,6 +20,9 @@ try {
 
   // 1. buildEvidence: provenance + deterministic id (test flag explicit)
   const ev = buildEvidence(base, { subject_id: "ohe-1", calibration_hash: calibrationHash, confidence: 0.9, test: false });
+  assert.equal(ev.sensor_id, "SE01-LS-01");
+  assert.equal(ev.evidence_class, "REAL");
+  assert.equal(ev.calibration_hash, calibrationHash);
   assert.equal(ev.method_hash, calibrationHash);
   assert.equal(ev.data_hash, sha256({ v: 0.31 }));
   assert.equal(ev.id, "ohe-1:SE01-LS-01:soil_moisture:1900000000");
@@ -41,6 +44,9 @@ try {
   // 3. test data structurally namespaced and may use generated TEST method provenance
   const t = buildEvidence(base, { subject_id: "ohe-1", test: true });
   assert.ok(t.subject_id.startsWith("TEST-") && t.id.startsWith("test:"), "test data namespaced");
+  assert.equal(t.sensor_id, "SE01-LS-01");
+  assert.equal(t.evidence_class, "TEST");
+  assert.equal(t.calibration_hash, null);
 
   // 4. topic parsing + bad topic / bad json rejected
   const msg = JSON.stringify({ sensor_id: "WSC2-L-01", observed_at: 1900000100, value: 12.4, raw: { mm: 12.4 } });
