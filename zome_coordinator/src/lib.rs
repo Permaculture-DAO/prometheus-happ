@@ -10,11 +10,11 @@ fn subject_base(subject_id: &str) -> ExternResult<AnyLinkableHash> {
         .into())
 }
 
-/// Stable single-agent idempotency key: subject + indicator + observation time.
+/// Stable single-agent idempotency key: subject + sensor + indicator + observation time.
 fn evidence_identity_base(evidence: &MrvEvidenceEntry) -> ExternResult<AnyLinkableHash> {
     Ok(Path::from(format!(
-        "evidence_identity:{}:{}:{}",
-        evidence.subject_id, evidence.indicator, evidence.observed_at
+        "evidence_identity:{}:{}:{}:{}",
+        evidence.subject_id, evidence.sensor_id, evidence.indicator, evidence.observed_at
     ))
     .path_entry_hash()?
     .into())
@@ -56,13 +56,22 @@ pub struct CreateEvidenceResult {
 
 /// Durable idempotent create for the local gateway/agent.
 ///
-/// Sequential re-delivery of the same subject+indicator+observed_at returns the
-/// existing action. Concurrent or multi-agent races remain outside this bounded
+/// Sequential re-delivery of the same subject+sensor+indicator+observed_at returns
+/// the existing action. Concurrent or multi-agent races remain outside this bounded
 /// guarantee and must not be described as universally duplicate-proof.
+///
+/// REAL evidence is deliberately rejected here until a separately reviewed,
+/// persistent authorization + calibration registry is implemented. This makes
+/// the durable Holochain boundary fail closed even if a gateway is misconfigured.
 #[hdk_extern]
 pub fn create_evidence_idempotent(
     evidence: MrvEvidenceEntry,
 ) -> ExternResult<CreateEvidenceResult> {
+    if evidence.evidence_class == "REAL" {
+        return Err(wasm_error!(WasmErrorInner::Guest(
+            "REAL_DATA_PERSISTENCE_GATE_CLOSED: real evidence requires the approved persistent authorization/calibration workflow".into()
+        )));
+    }
     let identity_base = evidence_identity_base(&evidence)?;
     let existing = get_links(
         LinkQuery::new(
