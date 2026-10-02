@@ -116,6 +116,13 @@ the host-only sweettests remain a separate manual gate and are not CI evidence.
 Run them after packing the candidate with
 `cargo test --manifest-path integration_tests/Cargo.toml --test conductor`.
 
+Use `--locked`: the host-only lockfile pins ed25519 3.0.0-rc.4, pkcs8
+0.11.0-rc.11 and signature 3.0.0-rc.10 with ed25519-dalek 3.0.0-pre.1;
+resolving their final releases with that prerelease fails to compile. The
+conductor test is pinned to Holochain 0.6.1. Persistence idempotency includes
+sensor_id; domain no-double-counting still uses subject + indicator + time,
+conservatively preventing two sensors from both counting the same observation.
+
 Runtime behavior lives here.
 
 Canonical meaning lives in `prometheus-canon`.

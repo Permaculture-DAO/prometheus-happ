@@ -6,6 +6,26 @@ use holo_hash::ActionHash;
 use holochain::sweettest::*;
 use std::path::PathBuf;
 
+// ActionHash uses MessagePack bytes; serde_json::Value cannot decode the binary
+// return field. Match the coordinator's typed response rather than losing it.
+#[derive(Debug, serde::Deserialize)]
+struct CreateEvidenceResult {
+    action_hash: ActionHash,
+    created: bool,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct EvidenceView {
+    action_hash: ActionHash,
+    evidence: PersistedEvidence,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct PersistedEvidence {
+    sensor_id: String,
+    evidence_class: String,
+}
+
 async fn setup() -> (SweetConductor, SweetZome) {
     let dna_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
@@ -61,10 +81,22 @@ async fn test_evidence_is_persisted_with_sensor_identity() {
         "missing_data": false,
         "reviewer": null
     });
-    let result: serde_json::Value = conductor
+    let result: CreateEvidenceResult = conductor
+        .call(&zome, "create_evidence_idempotent", payload.clone())
+        .await;
+    assert!(result.created);
+    let records: Vec<EvidenceView> = conductor
+        .call(&zome, "get_subject_evidence", "TEST-ohe-1".to_string())
+        .await;
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].action_hash, result.action_hash);
+    assert_eq!(records[0].evidence.sensor_id, "sensor-a");
+    assert_eq!(records[0].evidence.evidence_class, "TEST");
+    let repeated: CreateEvidenceResult = conductor
         .call(&zome, "create_evidence_idempotent", payload)
         .await;
-    assert_eq!(result.get("created").and_then(|v| v.as_bool()), Some(true));
+    assert!(!repeated.created);
+    assert_eq!(repeated.action_hash, result.action_hash);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -84,7 +116,7 @@ async fn real_evidence_fails_closed_at_persistence_boundary() {
         "missing_data": false,
         "reviewer": null
     });
-    let res: Result<serde_json::Value, _> = conductor
+    let res: Result<CreateEvidenceResult, _> = conductor
         .call_fallible(&zome, "create_evidence_idempotent", payload)
         .await;
     let error = res.expect_err("REAL evidence must remain persistence-gated");
