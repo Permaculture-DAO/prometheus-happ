@@ -59,7 +59,12 @@ impl OheEntry {
 pub struct MrvEvidenceEntry {
     pub id: String,
     pub subject_id: String,
+    pub sensor_id: String,
     pub indicator: String,
+    /// "TEST" | "REAL". TEST and REAL evidence are never silently interchangeable.
+    pub evidence_class: String,
+    /// Frozen sensor calibration artifact hash for REAL evidence; optional for TEST.
+    pub calibration_hash: Option<String>,
     pub method_hash: String,
     pub data_hash: String,
     pub observed_at: i64,
@@ -86,6 +91,41 @@ impl MrvEvidenceEntry {
         }
     }
     pub fn validate_entry(&self) -> ValidateCallbackResult {
+        if self.sensor_id.is_empty() {
+            return ValidateCallbackResult::Invalid("MRV evidence requires sensor_id".into());
+        }
+        match self.evidence_class.as_str() {
+            "TEST" => {
+                if !self.subject_id.starts_with("TEST-") {
+                    return ValidateCallbackResult::Invalid(
+                        "TEST evidence must remain TEST-namespaced".into(),
+                    );
+                }
+            }
+            "REAL" => {
+                if self.subject_id.starts_with("TEST-") {
+                    return ValidateCallbackResult::Invalid(
+                        "REAL evidence cannot use a TEST subject namespace".into(),
+                    );
+                }
+                if self.calibration_hash.as_deref().unwrap_or("").is_empty() {
+                    return ValidateCallbackResult::Invalid(
+                        "REAL evidence requires a calibration_hash".into(),
+                    );
+                }
+            }
+            other => {
+                return ValidateCallbackResult::Invalid(format!(
+                    "unknown evidence_class: {other}"
+                ))
+            }
+        }
+        if self.reviewer.is_some() {
+            return ValidateCallbackResult::Invalid(
+                "capture evidence cannot self-declare reviewer; use separate attestation workflow"
+                    .into(),
+            );
+        }
         if self.to_domain().is_valid() {
             ValidateCallbackResult::Valid
         } else {
