@@ -137,6 +137,20 @@ pub fn create_calibration_approval(
 ) -> ExternResult<ActionHash> {
     let sensor_id = calibration.sensor_id.clone();
     let previous = calibration.previous_calibration.clone();
+    if let Some(previous_action) = previous.as_ref() {
+        let existing_successors = get_links(
+            LinkQuery::new(
+                previous_action.clone(),
+                LinkTypes::CalibrationSuccessor.try_into_filter()?,
+            ),
+            GetStrategy::default(),
+        )?;
+        if !existing_successors.is_empty() {
+            return Err(wasm_error!(WasmErrorInner::Guest(
+                "CALIBRATION_LINEAGE_ALREADY_ADVANCED: predecessor already has a supersession or revocation successor".into()
+            )));
+        }
+    }
     let action_hash = create_entry(EntryTypes::CalibrationApproval(calibration))?;
     create_link(
         calibration_sensor_base(&sensor_id)?,
