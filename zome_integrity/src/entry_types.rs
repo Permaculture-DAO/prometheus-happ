@@ -310,7 +310,7 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 EntryTypes::Evidence(e) => Ok(e.validate_entry()),
                 EntryTypes::Claim(e) => Ok(e.validate_entry()),
                 EntryTypes::RealDataAuthorization(e) => Ok(validate_authorization(&e, &author, &props)),
-                EntryTypes::CalibrationApproval(e) => Ok(validate_calibration(&e, &author, &props)),
+                EntryTypes::CalibrationApproval(e) => validate_calibration(&e, &author, &props),
                 EntryTypes::ReviewAttestation(e) => validate_review(&e, &author, &props),
             }
         }
@@ -322,7 +322,7 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 EntryTypes::Evidence(e) => Ok(e.validate_entry()),
                 EntryTypes::Claim(e) => Ok(e.validate_entry()),
                 EntryTypes::RealDataAuthorization(e) => Ok(validate_authorization(&e, &author, &props)),
-                EntryTypes::CalibrationApproval(e) => Ok(validate_calibration(&e, &author, &props)),
+                EntryTypes::CalibrationApproval(e) => validate_calibration(&e, &author, &props),
                 EntryTypes::ReviewAttestation(e) => validate_review(&e, &author, &props),
             }
         }
