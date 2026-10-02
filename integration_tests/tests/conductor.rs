@@ -45,3 +45,50 @@ async fn active_without_baseline_is_rejected() {
         "Active-without-baseline OHE must be rejected by the integrity validate callback"
     );
 }
+
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_evidence_is_persisted_with_sensor_identity() {
+    let (conductor, zome) = setup().await;
+    let payload = serde_json::json!({
+        "id": "test:ohe-1:sensor-a:soil_moisture:1900000000",
+        "subject_id": "TEST-ohe-1",
+        "sensor_id": "sensor-a",
+        "indicator": "soil_moisture",
+        "evidence_class": "TEST",
+        "calibration_hash": null,
+        "method_hash": "test-method-hash",
+        "data_hash": "test-data-hash",
+        "observed_at": 1900000000_i64,
+        "confidence": 0.7,
+        "missing_data": false,
+        "reviewer": null
+    });
+    let result: serde_json::Value = conductor
+        .call(&zome, "create_evidence_idempotent", payload)
+        .await;
+    assert_eq!(result.get("created").and_then(|v| v.as_bool()), Some(true));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn real_evidence_fails_closed_at_persistence_boundary() {
+    let (conductor, zome) = setup().await;
+    let payload = serde_json::json!({
+        "id": "ohe-1:sensor-a:soil_moisture:1900000000",
+        "subject_id": "ohe-1",
+        "sensor_id": "sensor-a",
+        "indicator": "soil_moisture",
+        "evidence_class": "REAL",
+        "calibration_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "method_hash": "method-hash",
+        "data_hash": "data-hash",
+        "observed_at": 1900000000_i64,
+        "confidence": 0.7,
+        "missing_data": false,
+        "reviewer": null
+    });
+    let res: Result<serde_json::Value, _> = conductor
+        .call_fallible(&zome, "create_evidence_idempotent", payload)
+        .await;
+    assert!(res.is_err(), "REAL evidence must remain persistence-gated");
+}
