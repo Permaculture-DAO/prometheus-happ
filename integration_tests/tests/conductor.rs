@@ -2,8 +2,8 @@
 // Asserts the integrity `validate` callback runs live: a valid OHE is created,
 // and an invalid one (Active without baseline) is rejected.
 
-use holochain::sweettest::*;
 use holo_hash::ActionHash;
+use holochain::sweettest::*;
 use std::path::PathBuf;
 
 async fn setup() -> (SweetConductor, SweetZome) {
@@ -37,15 +37,12 @@ async fn active_without_baseline_is_rejected() {
         "id": "ohe-2", "steward": "agent-1", "site": "plot B",
         "status": "Active", "baseline_recorded": false
     });
-    let res: Result<ActionHash, _> = conductor
-        .call_fallible(&zome, "create_ohe", payload)
-        .await;
+    let res: Result<ActionHash, _> = conductor.call_fallible(&zome, "create_ohe", payload).await;
     assert!(
         res.is_err(),
         "Active-without-baseline OHE must be rejected by the integrity validate callback"
     );
 }
-
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_evidence_is_persisted_with_sensor_identity() {
@@ -90,5 +87,6 @@ async fn real_evidence_fails_closed_at_persistence_boundary() {
     let res: Result<serde_json::Value, _> = conductor
         .call_fallible(&zome, "create_evidence_idempotent", payload)
         .await;
-    assert!(res.is_err(), "REAL evidence must remain persistence-gated");
+    let error = res.expect_err("REAL evidence must remain persistence-gated");
+    assert!(format!("{error:?}").contains("REAL_DATA_PERSISTENCE_GATE_CLOSED"));
 }

@@ -104,6 +104,18 @@ Operational and evaluation repositories:
 
 ## Operational rule
 
+Persistence-gate candidate (#32) is a runtime-line migration: the additional
+sensor identity, evidence class and calibration fields change the entry schema;
+the integrity changes also change the DNA hash. The signed v1.1.3-runtime-proof
+and existing live sandbox do not prove this candidate. Rebuild and pack the DNA,
+record its new hash, and run conductor tests against that exact bundle before
+steward-approved migration. REAL persistence stays closed in integrity validation.
+
+CI runs integrity unit tests, including the REAL gate and calibration format;
+the host-only sweettests remain a separate manual gate and are not CI evidence.
+Run them after packing the candidate with
+`cargo test --manifest-path integration_tests/Cargo.toml --test conductor`.
+
 Runtime behavior lives here.
 
 Canonical meaning lives in `prometheus-canon`.

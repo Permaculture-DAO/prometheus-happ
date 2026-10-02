@@ -61,8 +61,8 @@ pub struct CreateEvidenceResult {
 /// guarantee and must not be described as universally duplicate-proof.
 ///
 /// REAL evidence is deliberately rejected here until a separately reviewed,
-/// persistent authorization + calibration registry is implemented. This makes
-/// the durable Holochain boundary fail closed even if a gateway is misconfigured.
+/// persistent authorization + calibration registry is implemented. The integrity
+/// zome independently rejects REAL entries, including writes from other coordinators.
 #[hdk_extern]
 pub fn create_evidence_idempotent(
     evidence: MrvEvidenceEntry,

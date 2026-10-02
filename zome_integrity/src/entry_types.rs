@@ -108,16 +108,20 @@ impl MrvEvidenceEntry {
                         "REAL evidence cannot use a TEST subject namespace".into(),
                     );
                 }
-                if self.calibration_hash.as_deref().unwrap_or("").is_empty() {
+                let hash = self.calibration_hash.as_deref().unwrap_or("");
+                if hash.len() != 64 || !hash.bytes().all(|byte| byte.is_ascii_hexdigit()) {
                     return ValidateCallbackResult::Invalid(
-                        "REAL evidence requires a calibration_hash".into(),
+                        "REAL evidence requires a 64-hex calibration_hash".into(),
                     );
                 }
+                // This rule belongs to the DNA, not a replaceable coordinator.
+                // A correctly shaped hash is not proof of registry membership.
+                return ValidateCallbackResult::Invalid(
+                    "REAL_DATA_PERSISTENCE_GATE_CLOSED: approved persistent authorization/calibration workflow required".into(),
+                );
             }
             other => {
-                return ValidateCallbackResult::Invalid(format!(
-                    "unknown evidence_class: {other}"
-                ))
+                return ValidateCallbackResult::Invalid(format!("unknown evidence_class: {other}"))
             }
         }
         if self.reviewer.is_some() {
@@ -131,6 +135,90 @@ impl MrvEvidenceEntry {
         } else {
             ValidateCallbackResult::Invalid("MRV evidence entry violates canon invariants (missing provenance, bad confidence, etc.)".into())
         }
+    }
+}
+
+#[cfg(test)]
+mod persistence_gate_tests {
+    use super::*;
+
+    fn test_evidence() -> MrvEvidenceEntry {
+        MrvEvidenceEntry {
+            id: "test:ev-1".into(),
+            subject_id: "TEST-ohe-1".into(),
+            sensor_id: "sensor-a".into(),
+            indicator: "soil_moisture".into(),
+            evidence_class: "TEST".into(),
+            calibration_hash: None,
+            method_hash: "test-method".into(),
+            data_hash: "test-data".into(),
+            observed_at: 1_900_000_000,
+            confidence: 0.7,
+            missing_data: false,
+            reviewer: None,
+        }
+    }
+
+    fn rejection(entry: &MrvEvidenceEntry) -> String {
+        match entry.validate_entry() {
+            ValidateCallbackResult::Invalid(reason) => reason,
+            other => panic!("expected rejection, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn namespaced_test_evidence_is_valid() {
+        assert!(matches!(
+            test_evidence().validate_entry(),
+            ValidateCallbackResult::Valid
+        ));
+    }
+
+    #[test]
+    fn real_evidence_with_well_formed_hash_still_fails_closed() {
+        let mut entry = test_evidence();
+        entry.evidence_class = "REAL".into();
+        entry.subject_id = "ohe-1".into();
+        entry.calibration_hash = Some("a".repeat(64));
+        assert!(rejection(&entry).contains("REAL_DATA_PERSISTENCE_GATE_CLOSED"));
+    }
+
+    #[test]
+    fn real_calibration_hash_requires_exact_hex_format() {
+        for hash in [
+            None,
+            Some(String::new()),
+            Some("a".repeat(63)),
+            Some("g".repeat(64)),
+        ] {
+            let mut entry = test_evidence();
+            entry.evidence_class = "REAL".into();
+            entry.subject_id = "ohe-1".into();
+            entry.calibration_hash = hash;
+            assert!(rejection(&entry).contains("64-hex calibration_hash"));
+        }
+    }
+
+    #[test]
+    fn capture_reviewer_and_missing_sensor_are_rejected() {
+        let mut entry = test_evidence();
+        entry.reviewer = Some("self".into());
+        assert!(rejection(&entry).contains("cannot self-declare reviewer"));
+        entry.reviewer = None;
+        entry.sensor_id.clear();
+        assert!(rejection(&entry).contains("sensor_id"));
+    }
+
+    #[test]
+    fn evidence_classes_and_namespaces_cannot_be_interchanged() {
+        let mut entry = test_evidence();
+        entry.subject_id = "ohe-1".into();
+        assert!(rejection(&entry).contains("TEST-namespaced"));
+        entry.evidence_class = "UNKNOWN".into();
+        assert!(rejection(&entry).contains("unknown evidence_class"));
+        entry.evidence_class = "REAL".into();
+        entry.subject_id = "TEST-ohe-1".into();
+        assert!(rejection(&entry).contains("REAL evidence cannot use a TEST"));
     }
 }
 
@@ -203,8 +291,9 @@ pub enum LinkTypes {
 
 #[hdk_extern]
 pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
-    if let FlatOp::StoreEntry(OpEntry::CreateEntry { app_entry, .. }) =
-        op.flattened::<EntryTypes, LinkTypes>()?
+    if let FlatOp::StoreEntry(
+        OpEntry::CreateEntry { app_entry, .. } | OpEntry::UpdateEntry { app_entry, .. },
+    ) = op.flattened::<EntryTypes, LinkTypes>()?
     {
         let res = match app_entry {
             EntryTypes::Ohe(e) => e.validate_entry(),
