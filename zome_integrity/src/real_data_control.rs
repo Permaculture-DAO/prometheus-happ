@@ -270,6 +270,24 @@ mod tests {
     }
 
     #[test]
+    fn revocation_shape_requires_predecessor_and_point_time() {
+        let mut revoke = CalibrationApprovalEntry {
+            id: "cal-revoke".into(),
+            sensor_id: "s-1".into(),
+            calibration_hash: "a".repeat(64),
+            valid_from: 10,
+            valid_until: 10,
+            status: "REVOKED".into(),
+            previous_calibration: None,
+        };
+        assert!(matches!(revoke.validate_shape(), ValidateCallbackResult::Invalid(_)));
+        revoke.previous_calibration = Some(ActionHash::from_raw_36(vec![3; 36]));
+        assert!(matches!(revoke.validate_shape(), ValidateCallbackResult::Valid));
+        revoke.valid_until = 11;
+        assert!(matches!(revoke.validate_shape(), ValidateCallbackResult::Invalid(_)));
+    }
+
+    #[test]
     fn review_shape_is_strict() {
         let entry = ReviewAttestationEntry {
             id: "review-1".into(), evidence_action: ActionHash::from_raw_36(vec![3; 36]),
