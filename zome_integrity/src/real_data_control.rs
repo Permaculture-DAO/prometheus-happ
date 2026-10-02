@@ -53,7 +53,12 @@ pub struct CalibrationApprovalEntry {
     pub calibration_hash: String,
     pub valid_from: i64,
     pub valid_until: i64,
+    /// APPROVED creates/continues a calibration lineage. REVOKED terminates one.
     pub status: String,
+    /// None only for the first approval in a sensor lineage.
+    /// A later APPROVED entry supersedes this predecessor from valid_from onward.
+    /// A REVOKED entry terminates this predecessor from valid_from onward.
+    pub previous_calibration: Option<ActionHash>,
 }
 
 impl CalibrationApprovalEntry {
@@ -69,6 +74,12 @@ impl CalibrationApprovalEntry {
         }
         if self.status != "APPROVED" && self.status != "REVOKED" {
             return ValidateCallbackResult::Invalid("calibration status must be APPROVED or REVOKED".into());
+        }
+        if self.status == "REVOKED" && self.previous_calibration.is_none() {
+            return ValidateCallbackResult::Invalid("calibration revocation must reference the approved calibration being revoked".into());
+        }
+        if self.status == "REVOKED" && self.valid_from != self.valid_until {
+            return ValidateCallbackResult::Invalid("calibration revocation is an effective-time event and requires valid_from == valid_until".into());
         }
         ValidateCallbackResult::Valid
     }
@@ -123,10 +134,61 @@ pub fn validate_calibration(
     entry: &CalibrationApprovalEntry,
     author: &AgentPubKey,
     props: &PrometheusDnaProperties,
-) -> ValidateCallbackResult {
-    match entry.validate_shape() {
-        ValidateCallbackResult::Valid => authority_result(author, props),
-        other => other,
+) -> ExternResult<ValidateCallbackResult> {
+    if let other @ ValidateCallbackResult::Invalid(_) = entry.validate_shape() {
+        return Ok(other);
+    }
+    if let other @ ValidateCallbackResult::Invalid(_) = authority_result(author, props) {
+        return Ok(other);
+    }
+    let Some(previous_action) = entry.previous_calibration.clone() else {
+        if entry.status == "REVOKED" {
+            return Ok(ValidateCallbackResult::Invalid(
+                "calibration revocation cannot be a lineage root".into(),
+            ));
+        }
+        return Ok(ValidateCallbackResult::Valid);
+    };
+
+    let record = must_get_valid_record(previous_action)?;
+    let previous: Option<CalibrationApprovalEntry> = record
+        .entry()
+        .to_app_option()
+        .map_err(|err| wasm_error!(WasmErrorInner::Guest(format!(
+            "previous calibration decode failed: {err}"
+        ))))?;
+    let Some(previous) = previous else {
+        return Ok(ValidateCallbackResult::Invalid(
+            "previous_calibration must target a calibration entry".into(),
+        ));
+    };
+    if previous.status != "APPROVED" {
+        return Ok(ValidateCallbackResult::Invalid(
+            "calibration lineage may only advance from an APPROVED predecessor".into(),
+        ));
+    }
+    if previous.sensor_id != entry.sensor_id {
+        return Ok(ValidateCallbackResult::Invalid(
+            "calibration lineage cannot cross sensor_id".into(),
+        ));
+    }
+    if entry.valid_from <= previous.valid_from {
+        return Ok(ValidateCallbackResult::Invalid(
+            "calibration successor/revocation must become effective after predecessor valid_from".into(),
+        ));
+    }
+    match entry.status.as_str() {
+        "APPROVED" if previous.calibration_hash == entry.calibration_hash => Ok(
+            ValidateCallbackResult::Invalid(
+                "superseding calibration must use a different calibration_hash".into(),
+            ),
+        ),
+        "REVOKED" if previous.calibration_hash != entry.calibration_hash => Ok(
+            ValidateCallbackResult::Invalid(
+                "revocation must carry the same calibration_hash as the calibration being revoked".into(),
+            ),
+        ),
+        _ => Ok(ValidateCallbackResult::Valid),
     }
 }
 
@@ -199,7 +261,7 @@ mod tests {
     fn calibration_shape_is_strict() {
         let entry = CalibrationApprovalEntry {
             id: "cal-1".into(), sensor_id: "s-1".into(), calibration_hash: "a".repeat(64),
-            valid_from: 1, valid_until: 2, status: "APPROVED".into(),
+            valid_from: 1, valid_until: 2, status: "APPROVED".into(), previous_calibration: None,
         };
         assert!(matches!(entry.validate_shape(), ValidateCallbackResult::Valid));
         let mut bad = entry.clone();
