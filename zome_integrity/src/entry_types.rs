@@ -13,6 +13,10 @@ use hdi::prelude::{FlatOp, OpEntry};
 use crate::claim::{Claim, ClaimStatus};
 use crate::mrv::MrvEvidence;
 use crate::ohe::{Ohe, OheStatus};
+use crate::real_data_control::{
+    dna_properties, validate_authorization, validate_calibration, validate_review,
+    CalibrationApprovalEntry, RealDataAuthorizationEntry, ReviewAttestationEntry,
+};
 use crate::valueflows::ids::AgentId;
 
 // ---------- OHE ----------
@@ -277,6 +281,12 @@ pub enum EntryTypes {
     Evidence(MrvEvidenceEntry),
     #[entry_type(visibility = "public")]
     Claim(ClaimEntry),
+    #[entry_type(visibility = "public")]
+    RealDataAuthorization(RealDataAuthorizationEntry),
+    #[entry_type(visibility = "public")]
+    CalibrationApproval(CalibrationApprovalEntry),
+    #[entry_type(visibility = "public")]
+    ReviewAttestation(ReviewAttestationEntry),
 }
 
 // Link types. SubjectToEvidence supports subject queries. EvidenceIdentity links a
@@ -287,20 +297,38 @@ pub enum EntryTypes {
 pub enum LinkTypes {
     SubjectToEvidence,
     EvidenceIdentity,
+    SensorToCalibration,
+    CalibrationSuccessor,
+    EvidenceToReview,
 }
 
 #[hdk_extern]
 pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
-    if let FlatOp::StoreEntry(
-        OpEntry::CreateEntry { app_entry, .. } | OpEntry::UpdateEntry { app_entry, .. },
-    ) = op.flattened::<EntryTypes, LinkTypes>()?
-    {
-        let res = match app_entry {
-            EntryTypes::Ohe(e) => e.validate_entry(),
-            EntryTypes::Evidence(e) => e.validate_entry(),
-            EntryTypes::Claim(e) => e.validate_entry(),
-        };
-        return Ok(res);
+    match op.flattened::<EntryTypes, LinkTypes>()? {
+        FlatOp::StoreEntry(OpEntry::CreateEntry { app_entry, action }) => {
+            let author = action.author;
+            let props = dna_properties()?;
+            match app_entry {
+                EntryTypes::Ohe(e) => Ok(e.validate_entry()),
+                EntryTypes::Evidence(e) => Ok(e.validate_entry()),
+                EntryTypes::Claim(e) => Ok(e.validate_entry()),
+                EntryTypes::RealDataAuthorization(e) => Ok(validate_authorization(&e, &author, &props)),
+                EntryTypes::CalibrationApproval(e) => validate_calibration(&e, &author, &props),
+                EntryTypes::ReviewAttestation(e) => validate_review(&e, &author, &props),
+            }
+        }
+        FlatOp::StoreEntry(OpEntry::UpdateEntry { app_entry, action, .. }) => {
+            let author = action.author;
+            let props = dna_properties()?;
+            match app_entry {
+                EntryTypes::Ohe(e) => Ok(e.validate_entry()),
+                EntryTypes::Evidence(e) => Ok(e.validate_entry()),
+                EntryTypes::Claim(e) => Ok(e.validate_entry()),
+                EntryTypes::RealDataAuthorization(e) => Ok(validate_authorization(&e, &author, &props)),
+                EntryTypes::CalibrationApproval(e) => validate_calibration(&e, &author, &props),
+                EntryTypes::ReviewAttestation(e) => validate_review(&e, &author, &props),
+            }
+        }
+        _ => Ok(ValidateCallbackResult::Valid),
     }
-    Ok(ValidateCallbackResult::Valid)
 }

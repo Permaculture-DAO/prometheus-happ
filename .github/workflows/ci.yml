@@ -16,6 +16,8 @@ jobs:
         run: cargo build --target wasm32-unknown-unknown --workspace
       - name: unit tests (integrity domain)
         run: cargo test -p zome_integrity
+      - name: host integration tests type-check
+        run: cargo check --locked --manifest-path integration_tests/Cargo.toml --tests
       # .cargo/config.toml carries -C link-arg=--allow-undefined so the conductor
       # host functions (__hc__*) remain wasm imports. Conductor smoke test is a
       # local/manual runbook step (ops-docs), not run in CI.
