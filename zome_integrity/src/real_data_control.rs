@@ -1,6 +1,4 @@
 use hdk::prelude::*;
-use holochain_serialized_bytes::prelude::*;
-
 use crate::entry_types::MrvEvidenceEntry;
 
 #[derive(Clone, Debug, Serialize, Deserialize, SerializedBytes, Default)]
@@ -147,7 +145,12 @@ pub fn validate_review(
         return Ok(ValidateCallbackResult::Invalid("review author is not listed in DNA approved_reviewers".into()));
     }
     let record = must_get_valid_record(entry.evidence_action.clone())?;
-    let evidence: Option<MrvEvidenceEntry> = record.entry().to_app_option()?;
+    let evidence: Option<MrvEvidenceEntry> = record
+        .entry()
+        .to_app_option()
+        .map_err(|err| wasm_error!(WasmErrorInner::Guest(format!(
+            "review target decode failed: {err}"
+        ))))?;
     if evidence.is_none() {
         return Ok(ValidateCallbackResult::Invalid("review attestation must target an MRV evidence entry".into()));
     }
