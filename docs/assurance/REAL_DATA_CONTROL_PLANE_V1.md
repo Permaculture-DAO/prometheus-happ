@@ -76,3 +76,18 @@ Before REAL can be considered for activation:
 8. obtain steward approval before any live migration.
 
 Until then `PROMETHEUS_ALLOW_REAL=0` and the DNA-level REAL gate remains closed.
+
+## Calibration lifecycle
+
+Calibration state is event-sourced and sensor-bound.
+
+- The first `APPROVED` calibration is a lineage root (`previous_calibration = null`).
+- A later `APPROVED` calibration may reference a prior approved calibration; from its `valid_from` onward it supersedes that predecessor.
+- A `REVOKED` event must reference the approved calibration it terminates, carry the same calibration hash, and use `valid_from == valid_until` as the revocation effective time.
+- Lineage cannot cross `sensor_id`.
+- A replacement must use a different calibration hash and become effective after the predecessor's `valid_from`.
+- The resolver returns `ACTIVE` only when exactly one approved, non-terminated calibration matches sensor, observation time and optional expected hash.
+- Zero matches return `NO_ACTIVE`; multiple surviving lineages return `AMBIGUOUS`. Both are fail-closed states.
+- Concurrent lineage forks are therefore not silently resolved by recency; ambiguity blocks admission and requires governance/operations reconciliation.
+
+This lifecycle still does not authorize REAL evidence persistence by itself. The evidence write path remains closed until authorization and calibration state are bound to the REAL write acceptance function and the full #30 matrix passes.
