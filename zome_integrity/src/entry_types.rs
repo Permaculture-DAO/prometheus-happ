@@ -297,6 +297,9 @@ pub enum EntryTypes {
 pub enum LinkTypes {
     SubjectToEvidence,
     EvidenceIdentity,
+    SensorToCalibration,
+    CalibrationSuccessor,
+    EvidenceToReview,
 }
 
 #[hdk_extern]
