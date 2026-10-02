@@ -13,7 +13,7 @@ export const sha256 = (input) =>
 
 // Indicators the pilot recognises (from MRV_BASELINE_PROTOCOL_SICILY.md). Unsupported
 // indicators are rejected — they cannot silently become evidence. Override/extend via
-// PROMETHEUS_INDICATORS (comma-separated) for new measurement campaigns.
+// PROMETHEUS_INDICATORS (comma-separated) only for a controlled measurement campaign.
 export const ALLOWED_INDICATORS = new Set(
   (process.env.PROMETHEUS_INDICATORS
     ? process.env.PROMETHEUS_INDICATORS.split(",").map((s) => s.trim())
@@ -29,6 +29,7 @@ export const ALLOWED_INDICATORS = new Set(
 );
 
 const ID_RE = /^[A-Za-z0-9._:-]{1,128}$/;
+const SHA256_RE = /^[a-f0-9]{64}$/i;
 const INDICATOR_RANGES = new Map([
   ["soil_moisture", [0, 1]],
   ["humidity", [0, 100]],
@@ -48,15 +49,20 @@ function canonicalJson(value) {
   return JSON.stringify(value);
 }
 
-export function signReading(reading, key) {
+export function signReading(reading, key, routing = {}) {
   const unsigned = { ...reading };
   delete unsigned.signature;
-  return createHmac("sha256", key).update(canonicalJson(unsigned)).digest("hex");
+  const envelope = {
+    subject_id: routing.subject_id ?? null,
+    indicator: routing.indicator ?? null,
+    reading: unsigned,
+  };
+  return createHmac("sha256", key).update(canonicalJson(envelope)).digest("hex");
 }
 
-export function verifyReadingSignature(reading, key) {
+export function verifyReadingSignature(reading, key, routing = {}) {
   if (!reading?.signature || typeof reading.signature !== "string") return false;
-  const expected = Buffer.from(signReading(reading, key), "hex");
+  const expected = Buffer.from(signReading(reading, key, routing), "hex");
   let supplied;
   try { supplied = Buffer.from(reading.signature, "hex"); } catch { return false; }
   return supplied.length === expected.length && timingSafeEqual(supplied, expected);
@@ -86,32 +92,44 @@ export function validateReading(reading, opts) {
   }
   if (!opts || !opts.subject_id || !ID_RE.test(String(opts.subject_id))) fail("invalid subject_id", "BAD_SUBJECT_ID");
   if (typeof opts.test !== "boolean") fail("opts.test must be an explicit boolean (no silent default)", "TEST_FLAG_REQUIRED");
+
+  // Synthetic records may use generated method provenance. Real field-sensor evidence may
+  // not: it must bind to an actual method/calibration artefact with a SHA-256 digest.
+  if (opts.test === false) {
+    if (!opts.calibration_hash) fail("real sensor evidence requires calibration_hash", "REAL_CALIBRATION_REQUIRED");
+    if (!SHA256_RE.test(String(opts.calibration_hash))) {
+      fail("real calibration_hash must be a SHA-256 hex digest", "REAL_CALIBRATION_HASH_INVALID");
+    }
+  }
 }
 
 /**
  * Build an MrvEvidenceEntry payload from a sensor reading. Validates first (fail-closed).
  * @param {object} reading  { sensor_id, indicator, value, unit, observed_at, raw }
- * @param {object} opts     { subject_id, test (REQUIRED boolean), calibration_hash, confidence, reviewer }
+ * @param {object} opts     { subject_id, test (REQUIRED boolean), calibration_hash, confidence }
  * @returns {object} payload for the coordinator `create_evidence` zome fn.
  */
 export function buildEvidence(reading, opts) {
   validateReading(reading, opts);
   const { sensor_id, indicator, observed_at, raw } = reading;
-  const { subject_id, calibration_hash, confidence, reviewer = null, test } = opts;
+  const { subject_id, calibration_hash, confidence, test } = opts;
 
-  // Deterministic id = sensor:indicator:time → correlation id + runtime no-double-counting.
-  const id = `${test ? "test:" : ""}${sensor_id}:${indicator}:${Number(observed_at)}`;
+  // Gateway correlation/dedup identity includes subject + sensor + indicator + time.
+  // Durable Holochain idempotency is enforced separately at the persistence boundary.
+  const id = `${test ? "test:" : ""}${subject_id}:${sensor_id}:${indicator}:${Number(observed_at)}`;
 
   return {
     id,
     // TEST data is namespaced so it can never be mistaken for real evidence.
     subject_id: test ? `TEST-${subject_id}` : subject_id,
     indicator,
-    method_hash: calibration_hash || sha256(`sensor:${sensor_id}`), // provenance of HOW
+    method_hash: calibration_hash || sha256(`sensor:${sensor_id}`), // TEST fallback only
     data_hash: sha256(raw ?? reading),                              // provenance of WHAT
     observed_at: Number(observed_at),
     confidence: typeof confidence === "number" ? confidence : 0.7,
     missing_data: reading.value === null || reading.value === undefined,
-    reviewer, // null until an independent reviewer attests this batch (Gate T.0)
+    // Acquisition payloads cannot self-declare review/admissibility.
+    // Independent reviewer attestation is a separate persistence workflow.
+    reviewer: null,
   };
 }
