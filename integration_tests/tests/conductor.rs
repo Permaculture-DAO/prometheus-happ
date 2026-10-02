@@ -300,6 +300,46 @@ async fn calibration_supersession_and_revocation_resolve_fail_closed() {
         .call(&authority_zome, "create_calibration_approval", replacement)
         .await;
 
+    let old_historical: CalibrationResolveResult = conductor
+        .call(
+            &authority_zome,
+            "resolve_calibration",
+            serde_json::json!({
+                "sensor_id": "sensor-test-1",
+                "observed_at": 400_i64,
+                "calibration_hash": "a".repeat(64)
+            }),
+        )
+        .await;
+    assert_eq!(old_historical.status, "ACTIVE");
+    assert_eq!(old_historical.action_hash, Some(root_action.clone()));
+
+    let wrong_hash: CalibrationResolveResult = conductor
+        .call(
+            &authority_zome,
+            "resolve_calibration",
+            serde_json::json!({
+                "sensor_id": "sensor-test-1",
+                "observed_at": 600_i64,
+                "calibration_hash": "c".repeat(64)
+            }),
+        )
+        .await;
+    assert_eq!(wrong_hash.status, "NO_ACTIVE");
+
+    let wrong_sensor: CalibrationResolveResult = conductor
+        .call(
+            &authority_zome,
+            "resolve_calibration",
+            serde_json::json!({
+                "sensor_id": "sensor-test-2",
+                "observed_at": 600_i64,
+                "calibration_hash": "b".repeat(64)
+            }),
+        )
+        .await;
+    assert_eq!(wrong_sensor.status, "NO_ACTIVE");
+
     let old_after: CalibrationResolveResult = conductor
         .call(
             &authority_zome,
