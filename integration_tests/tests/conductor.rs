@@ -334,7 +334,7 @@ async fn calibration_supersession_and_revocation_resolve_fail_closed() {
         "valid_from": 800_i64,
         "valid_until": 800_i64,
         "status": "REVOKED",
-        "previous_calibration": replacement_action
+        "previous_calibration": replacement_action.clone()
     });
     let _: ActionHash = conductor
         .call(&authority_zome, "create_calibration_approval", revoke)
@@ -352,6 +352,21 @@ async fn calibration_supersession_and_revocation_resolve_fail_closed() {
         )
         .await;
     assert_eq!(revoked.status, "NO_ACTIVE");
+
+    let reactivation = serde_json::json!({
+        "id": "cal-reactivation-forbidden",
+        "sensor_id": "sensor-test-1",
+        "calibration_hash": "f".repeat(64),
+        "valid_from": 900_i64,
+        "valid_until": 1600_i64,
+        "status": "APPROVED",
+        "previous_calibration": replacement_action
+    });
+    let reactivation_result: Result<ActionHash, _> = conductor
+        .call_fallible(&authority_zome, "create_calibration_approval", reactivation)
+        .await;
+    let error = reactivation_result.expect_err("revoked/superseded predecessor must not be reactivated through the normal coordinator path");
+    assert!(format!("{error:?}").contains("CALIBRATION_LINEAGE_ALREADY_ADVANCED"));
 }
 
 #[tokio::test(flavor = "multi_thread")]
