@@ -49,15 +49,20 @@ function canonicalJson(value) {
   return JSON.stringify(value);
 }
 
-export function signReading(reading, key) {
+export function signReading(reading, key, routing = {}) {
   const unsigned = { ...reading };
   delete unsigned.signature;
-  return createHmac("sha256", key).update(canonicalJson(unsigned)).digest("hex");
+  const envelope = {
+    subject_id: routing.subject_id ?? null,
+    indicator: routing.indicator ?? null,
+    reading: unsigned,
+  };
+  return createHmac("sha256", key).update(canonicalJson(envelope)).digest("hex");
 }
 
-export function verifyReadingSignature(reading, key) {
+export function verifyReadingSignature(reading, key, routing = {}) {
   if (!reading?.signature || typeof reading.signature !== "string") return false;
-  const expected = Buffer.from(signReading(reading, key), "hex");
+  const expected = Buffer.from(signReading(reading, key, routing), "hex");
   let supplied;
   try { supplied = Buffer.from(reading.signature, "hex"); } catch { return false; }
   return supplied.length === expected.length && timingSafeEqual(supplied, expected);
@@ -101,16 +106,17 @@ export function validateReading(reading, opts) {
 /**
  * Build an MrvEvidenceEntry payload from a sensor reading. Validates first (fail-closed).
  * @param {object} reading  { sensor_id, indicator, value, unit, observed_at, raw }
- * @param {object} opts     { subject_id, test (REQUIRED boolean), calibration_hash, confidence, reviewer }
+ * @param {object} opts     { subject_id, test (REQUIRED boolean), calibration_hash, confidence }
  * @returns {object} payload for the coordinator `create_evidence` zome fn.
  */
 export function buildEvidence(reading, opts) {
   validateReading(reading, opts);
   const { sensor_id, indicator, observed_at, raw } = reading;
-  const { subject_id, calibration_hash, confidence, reviewer = null, test } = opts;
+  const { subject_id, calibration_hash, confidence, test } = opts;
 
-  // Deterministic id = sensor:indicator:time → correlation id + runtime no-double-counting.
-  const id = `${test ? "test:" : ""}${sensor_id}:${indicator}:${Number(observed_at)}`;
+  // Gateway correlation/dedup identity includes subject + sensor + indicator + time.
+  // Durable Holochain idempotency is enforced separately at the persistence boundary.
+  const id = `${test ? "test:" : ""}${subject_id}:${sensor_id}:${indicator}:${Number(observed_at)}`;
 
   return {
     id,
@@ -122,6 +128,8 @@ export function buildEvidence(reading, opts) {
     observed_at: Number(observed_at),
     confidence: typeof confidence === "number" ? confidence : 0.7,
     missing_data: reading.value === null || reading.value === undefined,
-    reviewer, // optional at capture; independent batch attestation governs Gate T.0
+    // Acquisition payloads cannot self-declare review/admissibility.
+    // Independent reviewer attestation is a separate persistence workflow.
+    reviewer: null,
   };
 }
