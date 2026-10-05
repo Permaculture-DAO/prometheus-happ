@@ -1,8 +1,8 @@
 use hdk::prelude::*;
 use zome_integrity::admissibility::admissible;
 use zome_integrity::entry_types::{
-    ClaimEntry, EntryTypes, LinkTypes, MrvEvidenceEntry, OheEntry,
-    RavelAssessmentEntry, RavelBrakeSignalEntry, UltimateRiskBearerEntry,
+    ClaimEntry, EntryTypes, LinkTypes, MrvEvidenceEntry, OheEntry, RavelAssessmentEntry,
+    RavelBrakeSignalEntry, UltimateRiskBearerEntry,
 };
 
 /// Deterministic anchor for a subject (e.g. an OHE id) to hang evidence links on.
@@ -124,7 +124,6 @@ pub fn create_claim(claim: ClaimEntry) -> ExternResult<ActionHash> {
     create_entry(EntryTypes::Claim(claim))
 }
 
-
 /// Persist a shadow-underwriting assessment after integrity validation.
 /// This records a diagnostic result; it does not approve underwriting or capital use.
 #[hdk_extern]
@@ -190,8 +189,7 @@ pub fn get_subject_ravel_assessments(
     for link in links {
         if let Some(action_hash) = link.target.into_action_hash() {
             if let Some(record) = get(action_hash.clone(), GetOptions::default())? {
-                if let Ok(Some(assessment)) =
-                    record.entry().to_app_option::<RavelAssessmentEntry>()
+                if let Ok(Some(assessment)) = record.entry().to_app_option::<RavelAssessmentEntry>()
                 {
                     records.push(RavelAssessmentRecordView {
                         action_hash,
@@ -225,10 +223,12 @@ pub fn get_assessment_ultimate_risk_bearers(
     for link in links {
         if let Some(action_hash) = link.target.into_action_hash() {
             if let Some(record) = get(action_hash.clone(), GetOptions::default())? {
-                if let Ok(Some(bearer)) =
-                    record.entry().to_app_option::<UltimateRiskBearerEntry>()
+                if let Ok(Some(bearer)) = record.entry().to_app_option::<UltimateRiskBearerEntry>()
                 {
-                    records.push(UltimateRiskBearerRecordView { action_hash, bearer });
+                    records.push(UltimateRiskBearerRecordView {
+                        action_hash,
+                        bearer,
+                    });
                 }
             }
         }
