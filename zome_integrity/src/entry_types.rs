@@ -139,6 +139,142 @@ impl ClaimEntry {
     }
 }
 
+// ---------- RAVEL SHADOW RISK RECORDS ----------
+// RAVEL records provenance-bound diagnostic outputs only. They never certify,
+// price insurance, approve credit, or create PRU/RAP/capital consequences.
+
+fn finite_nonnegative(value: f64) -> bool {
+    value.is_finite() && value >= 0.0
+}
+
+fn probability_like(value: f64) -> bool {
+    value.is_finite() && (0.0..=1.0).contains(&value)
+}
+
+#[hdk_entry_helper]
+#[derive(Clone)]
+pub struct RavelAssessmentEntry {
+    pub id: String,
+    pub subject_id: String,
+    pub model_version: String,
+    pub evidence_refs: Vec<String>,
+    pub expected_loss: f64,
+    pub es95: f64,
+    pub es99: f64,
+    pub ppci: Option<f64>,
+    /// Regenerative Risk Delta. May be negative when the candidate scenario is worse.
+    pub rr_delta: Option<f64>,
+    pub urbc: Option<f64>,
+    pub confidence: f64,
+    /// Candidate v0.1 invariant: always 0.0 for capital-facing purposes.
+    pub vrrc: f64,
+    /// Must be "not_admitted" in candidate v0.1.
+    pub vrrc_status: String,
+    /// Must be "shadow_underwriting".
+    pub mode: String,
+    /// Must be "evaluation_not_certification".
+    pub authority_boundary: String,
+    pub created_at: i64,
+}
+
+impl RavelAssessmentEntry {
+    pub fn validate_entry(&self) -> ValidateCallbackResult {
+        let rr_ok = self
+            .rr_delta
+            .map(|v| v.is_finite() && v <= 1.0)
+            .unwrap_or(true);
+        let ppci_ok = self.ppci.map(probability_like).unwrap_or(true);
+        let urbc_ok = self.urbc.map(probability_like).unwrap_or(true);
+        let ok = !self.id.is_empty()
+            && !self.subject_id.is_empty()
+            && !self.model_version.is_empty()
+            && finite_nonnegative(self.expected_loss)
+            && finite_nonnegative(self.es95)
+            && finite_nonnegative(self.es99)
+            && self.es95 + 1e-9 >= self.expected_loss
+            && self.es99 + 1e-9 >= self.es95
+            && ppci_ok
+            && rr_ok
+            && urbc_ok
+            && probability_like(self.confidence)
+            && self.vrrc == 0.0
+            && self.vrrc_status == "not_admitted"
+            && self.mode == "shadow_underwriting"
+            && self.authority_boundary == "evaluation_not_certification";
+        if ok {
+            ValidateCallbackResult::Valid
+        } else {
+            ValidateCallbackResult::Invalid(
+                "RAVEL assessment violates shadow-underwriting/non-authority invariants".into(),
+            )
+        }
+    }
+}
+
+#[hdk_entry_helper]
+#[derive(Clone)]
+pub struct UltimateRiskBearerEntry {
+    pub assessment_id: String,
+    pub scenario_id: String,
+    pub bearer_id: String,
+    pub economic_group_id: String,
+    pub retained_loss: f64,
+    pub model_version: String,
+}
+
+impl UltimateRiskBearerEntry {
+    pub fn validate_entry(&self) -> ValidateCallbackResult {
+        if !self.assessment_id.is_empty()
+            && !self.scenario_id.is_empty()
+            && !self.bearer_id.is_empty()
+            && !self.economic_group_id.is_empty()
+            && !self.model_version.is_empty()
+            && finite_nonnegative(self.retained_loss)
+        {
+            ValidateCallbackResult::Valid
+        } else {
+            ValidateCallbackResult::Invalid("invalid ultimate-risk-bearer record".into())
+        }
+    }
+}
+
+#[hdk_entry_helper]
+#[derive(Clone)]
+pub struct RavelBrakeSignalEntry {
+    pub assessment_id: String,
+    /// "Green" | "Yellow" | "Orange" | "Red"
+    pub severity: String,
+    pub reasons: Vec<String>,
+    pub review_required: bool,
+    /// Must remain false: RAVEL never autonomously enforces financial consequences.
+    pub autonomous_enforcement: bool,
+    pub created_at: i64,
+}
+
+impl RavelBrakeSignalEntry {
+    pub fn validate_entry(&self) -> ValidateCallbackResult {
+        let severity_ok = matches!(
+            self.severity.as_str(),
+            "Green" | "Yellow" | "Orange" | "Red"
+        );
+        let review_ok = match self.severity.as_str() {
+            "Orange" | "Red" => self.review_required,
+            _ => true,
+        };
+        if !self.assessment_id.is_empty()
+            && severity_ok
+            && review_ok
+            && !self.autonomous_enforcement
+        {
+            ValidateCallbackResult::Valid
+        } else {
+            ValidateCallbackResult::Invalid(
+                "RAVEL brake signal violates review/non-enforcement boundary".into(),
+            )
+        }
+    }
+}
+
 // ---------- ENTRY TYPES + VALIDATION ----------
 #[hdk_entry_types]
 #[unit_enum(UnitEntryTypes)]
@@ -149,6 +285,12 @@ pub enum EntryTypes {
     Evidence(MrvEvidenceEntry),
     #[entry_type(visibility = "public")]
     Claim(ClaimEntry),
+    #[entry_type(visibility = "public")]
+    RavelAssessment(RavelAssessmentEntry),
+    #[entry_type(visibility = "public")]
+    UltimateRiskBearer(UltimateRiskBearerEntry),
+    #[entry_type(visibility = "public")]
+    RavelBrakeSignal(RavelBrakeSignalEntry),
 }
 
 // Link types. SubjectToEvidence supports subject queries. EvidenceIdentity links a
@@ -159,6 +301,9 @@ pub enum EntryTypes {
 pub enum LinkTypes {
     SubjectToEvidence,
     EvidenceIdentity,
+    SubjectToRavelAssessment,
+    AssessmentToUltimateRiskBearer,
+    AssessmentToBrakeSignal,
 }
 
 #[hdk_extern]
@@ -170,6 +315,9 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
             EntryTypes::Ohe(e) => e.validate_entry(),
             EntryTypes::Evidence(e) => e.validate_entry(),
             EntryTypes::Claim(e) => e.validate_entry(),
+            EntryTypes::RavelAssessment(e) => e.validate_entry(),
+            EntryTypes::UltimateRiskBearer(e) => e.validate_entry(),
+            EntryTypes::RavelBrakeSignal(e) => e.validate_entry(),
         };
         return Ok(res);
     }
