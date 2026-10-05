@@ -308,8 +308,9 @@ pub enum LinkTypes {
 
 #[hdk_extern]
 pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
-    if let FlatOp::StoreEntry(OpEntry::CreateEntry { app_entry, .. }) =
-        op.flattened::<EntryTypes, LinkTypes>()?
+    if let FlatOp::StoreEntry(
+        OpEntry::CreateEntry { app_entry, .. } | OpEntry::UpdateEntry { app_entry, .. },
+    ) = op.flattened::<EntryTypes, LinkTypes>()?
     {
         let res = match app_entry {
             EntryTypes::Ohe(e) => e.validate_entry(),
