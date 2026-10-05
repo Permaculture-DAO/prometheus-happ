@@ -30,7 +30,7 @@ jobs:
       - name: Check RAVEL formatting
         # Legacy modules have pre-existing formatting debt; do not hide it
         # behind a falsely green cargo fmt --all claim.
-        run: rustfmt --edition 2021 --config skip_children=true --check zome_coordinator/src/lib.rs zome_integrity/src/entry_types.rs integration_tests/tests/ravel.rs
+        run: rustfmt --edition 2021 --check zome_coordinator/src/lib.rs zome_integrity/src/entry_types.rs integration_tests/tests/ravel.rs
       - name: Check workspace
         run: cargo check --locked --workspace
       - name: Integrity regression tests

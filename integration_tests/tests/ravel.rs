@@ -1,7 +1,10 @@
 //! Isolated candidate conductor proofs, using synthetic inputs only.
 //! Persistence is not calibration, independent review or underwriting admission.
 use holo_hash::ActionHash;
-use holochain::{prelude::Record, sweettest::*};
+use holochain::{
+    prelude::{Entry, ExternIO, Record},
+    sweettest::*,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -71,14 +74,24 @@ async fn ravel_records_round_trip_without_financial_authority() {
     assert_eq!(bearers[0].bearer, bearer);
     let brake = json!({"assessment_id": "TEST-ravel-1", "severity": "Red", "reasons": ["synthetic review test"], "review_required": true, "autonomous_enforcement": false, "created_at": 1900000000});
     let brake_hash: ActionHash = conductor
-        .call(&zome, "create_ravel_brake_signal", brake)
+        .call(&zome, "create_ravel_brake_signal", brake.clone())
         .await;
     let record: Option<Record> = conductor
         .call(&zome, "get_record", brake_hash.clone())
         .await;
     let stored = record.expect("created brake record must be readable");
     assert_eq!(stored.action_address(), &brake_hash);
-    assert!(stored.entry().as_option().is_some());
+    let bytes = match stored.entry().as_option() {
+        Some(Entry::App(bytes)) => bytes,
+        _ => panic!("brake app entry must be present"),
+    };
+    let stored_brake: Value = ExternIO(bytes.bytes().clone())
+        .decode()
+        .expect("brake payload must decode");
+    assert_eq!(
+        stored_brake, brake,
+        "persisted brake payload must round-trip"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]
