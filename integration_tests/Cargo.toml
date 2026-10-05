@@ -8,7 +8,8 @@ publish = false
 # zome build never pulls the holochain conductor.
 [dependencies]
 
-# Match the installed conductor and the previously verified integration lock.
+# Match the installed 0.6.1 conductor baseline; preserve Cargo.lock and use
+# --locked so crypto prerelease dependencies cannot silently drift.
 [dev-dependencies]
 holochain = { version = "=0.6.1", features = ["sweettest"] }
 holo_hash = "=0.6.1"

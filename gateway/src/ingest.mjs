@@ -4,10 +4,10 @@
 //
 // Canon guard: until authorized field collection, the gateway is STRUCTURALLY
 // incapable of writing unlabelled real evidence — set PROMETHEUS_ALLOW_REAL=1 to
-// permit real (non-test) evidence. Otherwise every reading is forced to test.
+// permit real (non-test) evidence. Real mode also requires an explicit subject allowlist.
 //
 // Topic: prometheus/<subject_id>/<indicator>  payload JSON:
-//   { sensor_id, value, unit, observed_at, calibration_hash?, confidence?, reviewer?, raw?, test? }
+//   { sensor_id, value, unit, observed_at, calibration_hash?, confidence?, raw?, test? }
 
 import { buildEvidence, EvidenceError, verifyReadingSignature } from "./evidence.mjs";
 import { submitEvidence, close } from "./conductor.mjs";
@@ -17,6 +17,10 @@ const ALLOW_REAL = process.env.PROMETHEUS_ALLOW_REAL === "1";
 const MAX_RETRIES = Number(process.env.PROMETHEUS_MAX_RETRIES || 3);
 const REQUIRE_SIGNATURE = process.env.PROMETHEUS_REQUIRE_SIGNATURE === "1";
 const HMAC_KEY = process.env.PROMETHEUS_HMAC_KEY || "";
+const ALLOWED_SUBJECTS = new Set(
+  (process.env.PROMETHEUS_ALLOWED_SUBJECTS || "")
+    .split(",").map((s) => s.trim()).filter(Boolean)
+);
 const TOPIC_RE = /^prometheus\/[A-Za-z0-9._:-]{1,128}\/[A-Za-z0-9._:-]{1,64}$/;
 
 const seen = new Set();          // idempotency: evidence ids already submitted
@@ -37,6 +41,16 @@ function safeBrokerUrl(value) {
   }
 }
 
+export function validateRealSubject(subjectId, { allowReal = ALLOW_REAL, requestedTest = false, allowedSubjects = ALLOWED_SUBJECTS } = {}) {
+  if (!allowReal || requestedTest) return;
+  if (!allowedSubjects || allowedSubjects.size === 0) {
+    throw new EvidenceError("real mode requires PROMETHEUS_ALLOWED_SUBJECTS", "REAL_SUBJECTS_CONFIG");
+  }
+  if (!allowedSubjects.has(subjectId)) {
+    throw new EvidenceError(`subject is not authorized for real evidence: ${subjectId}`, "SUBJECT_NOT_AUTHORIZED");
+  }
+}
+
 /** Parse a topic+message into a validated evidence payload. Throws EvidenceError. */
 export function readingToEvidence(topic, msg, { defaultSubject } = {}) {
   if (!TOPIC_RE.test(topic)) throw new EvidenceError(`bad topic shape: ${topic}`, "BAD_TOPIC");
@@ -48,10 +62,16 @@ export function readingToEvidence(topic, msg, { defaultSubject } = {}) {
   if (REQUIRE_SIGNATURE) {
     if (!HMAC_KEY) throw new EvidenceError("signature verification key unavailable", "SIGNATURE_CONFIG");
     if (!body.signature) throw new EvidenceError("payload signature is required", "SIGNATURE_MISSING");
-    if (!verifyReadingSignature(body, HMAC_KEY)) throw new EvidenceError("payload signature is invalid", "SIGNATURE_INVALID");
+    if (!verifyReadingSignature(body, HMAC_KEY, { subject_id, indicator })) {
+      throw new EvidenceError("payload signature is invalid for routing envelope", "SIGNATURE_INVALID");
+    }
   }
-  // Fail-closed real-evidence guard: real only with explicit authorization.
+
+  const resolvedSubject = subject_id || defaultSubject;
   const requestedTest = body.test === true;
+  validateRealSubject(resolvedSubject, { requestedTest });
+
+  // Fail-closed real-evidence guard: real only with explicit authorization.
   const test = ALLOW_REAL ? requestedTest : true;
   return buildEvidence(
     {
@@ -61,8 +81,8 @@ export function readingToEvidence(topic, msg, { defaultSubject } = {}) {
       value: body.value,
       raw: body.raw ?? body,
     },
-    { subject_id: subject_id || defaultSubject, calibration_hash: body.calibration_hash,
-      confidence: body.confidence, reviewer: body.reviewer ?? null, test }
+    { subject_id: resolvedSubject, calibration_hash: body.calibration_hash,
+      confidence: body.confidence, test }
   );
 }
 
@@ -113,6 +133,9 @@ export async function handleMessage(topic, raw, opts = {}) {
 }
 
 export async function start() {
+  if (ALLOW_REAL && ALLOWED_SUBJECTS.size === 0) {
+    throw new Error("PROMETHEUS_ALLOW_REAL=1 requires a non-empty PROMETHEUS_ALLOWED_SUBJECTS allowlist");
+  }
   const { default: mqtt } = await import("mqtt");
   const url = process.env.MQTT_URL || "mqtt://127.0.0.1:1883";
   const topic = process.env.MQTT_TOPIC || "prometheus/+/+";
