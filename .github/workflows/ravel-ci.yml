@@ -1,0 +1,25 @@
+name: RAVEL hApp CI
+
+on:
+  pull_request:
+    paths:
+      - "zome_integrity/**"
+      - "zome_coordinator/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/ravel-ci.yml"
+  push:
+    branches:
+      - "feature/ravel-v2-2026-10-05"
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust versions
+        run: rustc --version && cargo --version
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Check workspace
+        run: cargo check --workspace
