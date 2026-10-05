@@ -91,11 +91,24 @@ async fn ravel_nonzero_credit_and_autonomous_brake_are_rejected() {
         .await;
     let error = result.expect_err("VRRC must remain zero");
     assert!(format!("{error:?}").contains("shadow-underwriting/non-authority"));
+    let mut payload = assessment();
+    payload["mode"] = json!("underwriting_approved");
+    let result: Result<ActionHash, _> = conductor
+        .call_fallible(&zome, "create_ravel_assessment", payload)
+        .await;
+    let error = result.expect_err("Non-shadow mode must remain forbidden");
+    assert!(format!("{error:?}").contains("shadow-underwriting/non-authority"));
     let brake = json!({"assessment_id": "TEST-ravel-1", "severity": "Red", "reasons": ["synthetic"], "review_required": true, "autonomous_enforcement": true, "created_at": 1900000000});
     let result: Result<ActionHash, _> = conductor
         .call_fallible(&zome, "create_ravel_brake_signal", brake)
         .await;
     let error = result.expect_err("Autonomous enforcement must remain disabled");
+    assert!(format!("{error:?}").contains("review/non-enforcement"));
+    let brake = json!({"assessment_id": "TEST-ravel-1", "severity": "Red", "reasons": ["synthetic"], "review_required": false, "autonomous_enforcement": false, "created_at": 1900000000});
+    let result: Result<ActionHash, _> = conductor
+        .call_fallible(&zome, "create_ravel_brake_signal", brake)
+        .await;
+    let error = result.expect_err("Red signal must require human review");
     assert!(format!("{error:?}").contains("review/non-enforcement"));
     let rows: Vec<AssessmentView> = conductor
         .call(
