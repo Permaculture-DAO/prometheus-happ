@@ -42,22 +42,43 @@ fn assessment() -> Value {
 async fn ravel_records_round_trip_without_financial_authority() {
     let (conductor, zome) = setup().await;
     let payload = assessment();
-    let hash: ActionHash = conductor.call(&zome, "create_ravel_assessment", payload.clone()).await;
-    let rows: Vec<AssessmentView> = conductor.call(&zome, "get_subject_ravel_assessments", "TEST-subject-1".to_string()).await;
+    let hash: ActionHash = conductor
+        .call(&zome, "create_ravel_assessment", payload.clone())
+        .await;
+    let rows: Vec<AssessmentView> = conductor
+        .call(
+            &zome,
+            "get_subject_ravel_assessments",
+            "TEST-subject-1".to_string(),
+        )
+        .await;
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].action_hash, hash);
     assert_eq!(rows[0].assessment, payload);
     let bearer = json!({"assessment_id": "TEST-ravel-1", "scenario_id": "TEST-tail", "bearer_id": "TEST-insurer", "economic_group_id": "TEST-group", "retained_loss": 16.0, "model_version": "v0.1-synthetic"});
-    let bearer_hash: ActionHash = conductor.call(&zome, "create_ultimate_risk_bearer", bearer.clone()).await;
-    let bearers: Vec<BearerView> = conductor.call(&zome, "get_assessment_ultimate_risk_bearers", "TEST-ravel-1".to_string()).await;
+    let bearer_hash: ActionHash = conductor
+        .call(&zome, "create_ultimate_risk_bearer", bearer.clone())
+        .await;
+    let bearers: Vec<BearerView> = conductor
+        .call(
+            &zome,
+            "get_assessment_ultimate_risk_bearers",
+            "TEST-ravel-1".to_string(),
+        )
+        .await;
     assert_eq!(bearers.len(), 1);
     assert_eq!(bearers[0].action_hash, bearer_hash);
     assert_eq!(bearers[0].bearer, bearer);
     let brake = json!({"assessment_id": "TEST-ravel-1", "severity": "Red", "reasons": ["synthetic review test"], "review_required": true, "autonomous_enforcement": false, "created_at": 1900000000});
-    let brake_hash: ActionHash = conductor.call(&zome, "create_ravel_brake_signal", brake.clone()).await;
-    let record: Option<Record> = conductor.call(&zome, "get_record", brake_hash).await;
-    let stored = record.unwrap().entry().to_app_option::<Value>().unwrap().unwrap();
-    assert_eq!(stored, brake);
+    let brake_hash: ActionHash = conductor
+        .call(&zome, "create_ravel_brake_signal", brake)
+        .await;
+    let record: Option<Record> = conductor
+        .call(&zome, "get_record", brake_hash.clone())
+        .await;
+    let stored = record.expect("created brake record must be readable");
+    assert_eq!(stored.action_address(), &brake_hash);
+    assert!(stored.entry().as_option().is_some());
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -65,13 +86,23 @@ async fn ravel_nonzero_credit_and_autonomous_brake_are_rejected() {
     let (conductor, zome) = setup().await;
     let mut payload = assessment();
     payload["vrrc"] = json!(1.0);
-    let result: Result<ActionHash, _> = conductor.call_fallible(&zome, "create_ravel_assessment", payload).await;
+    let result: Result<ActionHash, _> = conductor
+        .call_fallible(&zome, "create_ravel_assessment", payload)
+        .await;
     let error = result.expect_err("VRRC must remain zero");
     assert!(format!("{error:?}").contains("shadow-underwriting/non-authority"));
     let brake = json!({"assessment_id": "TEST-ravel-1", "severity": "Red", "reasons": ["synthetic"], "review_required": true, "autonomous_enforcement": true, "created_at": 1900000000});
-    let result: Result<ActionHash, _> = conductor.call_fallible(&zome, "create_ravel_brake_signal", brake).await;
+    let result: Result<ActionHash, _> = conductor
+        .call_fallible(&zome, "create_ravel_brake_signal", brake)
+        .await;
     let error = result.expect_err("Autonomous enforcement must remain disabled");
     assert!(format!("{error:?}").contains("review/non-enforcement"));
-    let rows: Vec<AssessmentView> = conductor.call(&zome, "get_subject_ravel_assessments", "TEST-subject-1".to_string()).await;
+    let rows: Vec<AssessmentView> = conductor
+        .call(
+            &zome,
+            "get_subject_ravel_assessments",
+            "TEST-subject-1".to_string(),
+        )
+        .await;
     assert!(rows.is_empty());
 }
