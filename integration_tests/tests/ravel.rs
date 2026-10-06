@@ -8,6 +8,7 @@ use holochain::{
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::path::PathBuf;
+use std::time::Instant;
 
 #[derive(Debug, Deserialize)]
 struct AssessmentView {
@@ -131,4 +132,61 @@ async fn ravel_nonzero_credit_and_autonomous_brake_are_rejected() {
         )
         .await;
     assert!(rows.is_empty());
+}
+
+/// Explicitly opt-in: local one-author storage probe, not a distributed assurance test.
+/// Outputs raw samples/payloads for a matched SQLite control. Startup is separate.
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "bounded local storage benchmark; run explicitly in an isolated conductor"]
+async fn local_storage_probe() {
+    let output =
+        std::env::var("PROMETHEUS_BENCH_OUTPUT").expect("explicit fresh output path required");
+    // Refuse replacement of any prior receipt, including if startup fails later.
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(output)
+        .expect("fresh output receipt required");
+    let mut runs = Vec::new();
+    for repeat in 0..5 {
+        let startup = Instant::now();
+        let (conductor, zome) = setup().await;
+        let startup_ms = startup.elapsed().as_secs_f64() * 1000.0;
+        let mut samples = Vec::new();
+        let mut payloads = Vec::new();
+        for i in 0..100 {
+            let mut payload = assessment();
+            payload["id"] = json!(format!("TEST-storage-{repeat}-{i}"));
+            payload["subject_id"] = json!(format!("TEST-subject-{repeat}-{i}"));
+            let start = Instant::now();
+            let hash: ActionHash = conductor
+                .call(&zome, "create_ravel_assessment", payload.clone())
+                .await;
+            let rows: Vec<AssessmentView> = conductor
+                .call(
+                    &zome,
+                    "get_subject_ravel_assessments",
+                    payload["subject_id"].as_str().unwrap().to_string(),
+                )
+                .await;
+            let ms = start.elapsed().as_secs_f64() * 1000.0;
+            assert_eq!(rows.len(), 1);
+            assert_eq!(rows[0].action_hash, hash);
+            assert_eq!(rows[0].assessment, payload);
+            samples.push(ms);
+            payloads.push(payload);
+        }
+        // Existing rejection suite tests invalid inputs separately; no timing claim there.
+        runs.push(json!({"repeat": repeat, "startup_ms": startup_ms,
+                         "write_and_indexed_read_ms": samples, "payloads": payloads}));
+    }
+    let report = json!({"profile": "bounded-local-one-author", "store": "holochain",
+        "conductor_version": "0.6.1", "records_per_repeat": 100, "repeats": 5,
+        "synthetic_only": true, "production_admitted": false,
+        "assurance_profile": "not_tested", "runs": runs});
+    use std::io::Write;
+    file.write_all(serde_json::to_string_pretty(&report).unwrap().as_bytes())
+        .unwrap();
+    file.sync_all().unwrap();
+    println!("LOCAL STORAGE PROBE: 500 exact readbacks; not distributed assurance");
 }
