@@ -11,6 +11,12 @@ if [ ! -f "hearth_prometheus.happ" ]; then
   exit 1
 fi
 
+if [ -z "${PROMETHEUS_HC_PASSPHRASE:-}" ]; then
+  read -s -p "Enter Holochain sandbox passphrase: " PROMETHEUS_HC_PASSPHRASE
+  echo
+  export PROMETHEUS_HC_PASSPHRASE
+fi
+
 echo
 echo "=== CLEAN OLD SANDBOX ==="
 rm -rf "$SANDBOX_DIR"
@@ -23,11 +29,8 @@ cp hearth_prometheus.happ "$SANDBOX_DIR/"
 echo
 echo "=== GENERATE SANDBOX ==="
 cd "$SANDBOX_DIR"
-hc sandbox generate --app-id "$APP_ID" hearth_prometheus.happ
+printf '%s\n' "$PROMETHEUS_HC_PASSPHRASE" | hc sandbox --piped generate --app-id "$APP_ID" hearth_prometheus.happ
 
 echo
 echo "CREATE_FRESH_SANDBOX: PASSED"
-echo
-echo "Next terminal command:"
-echo "cd \"$(pwd)\""
-echo "hc sandbox -f 14600 run"
+echo "Sandbox: $(pwd)"
