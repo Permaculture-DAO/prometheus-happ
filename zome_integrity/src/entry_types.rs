@@ -267,8 +267,8 @@ impl ClaimEntry {
     }
 }
 
-// ---------- RAVEL SHADOW RISK RECORDS ----------
-// RAVEL records provenance-bound diagnostic outputs only. They never certify,
+// ---------- Ravel SHADOW RISK RECORDS ----------
+// Ravel records provenance-bound diagnostic outputs only. They never certify,
 // price insurance, approve credit, or create PRU/RAP/capital consequences.
 
 fn finite_nonnegative(value: f64) -> bool {
@@ -333,7 +333,7 @@ impl RavelAssessmentEntry {
             ValidateCallbackResult::Valid
         } else {
             ValidateCallbackResult::Invalid(
-                "RAVEL assessment violates shadow-underwriting/non-authority invariants".into(),
+                "Ravel assessment violates shadow-underwriting/non-authority invariants".into(),
             )
         }
     }
@@ -374,7 +374,7 @@ pub struct RavelBrakeSignalEntry {
     pub severity: String,
     pub reasons: Vec<String>,
     pub review_required: bool,
-    /// Must remain false: RAVEL never autonomously enforces financial consequences.
+    /// Must remain false: Ravel never autonomously enforces financial consequences.
     pub autonomous_enforcement: bool,
     pub created_at: i64,
 }
@@ -397,7 +397,7 @@ impl RavelBrakeSignalEntry {
             ValidateCallbackResult::Valid
         } else {
             ValidateCallbackResult::Invalid(
-                "RAVEL brake signal violates review/non-enforcement boundary".into(),
+                "Ravel brake signal violates review/non-enforcement boundary".into(),
             )
         }
     }
