@@ -1,0 +1,39 @@
+name: RAVEL hApp CI
+
+on:
+  pull_request:
+    paths:
+      - "zome_integrity/**"
+      - "zome_coordinator/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "integration_tests/**"
+      - ".github/workflows/ravel-ci.yml"
+  push:
+    branches:
+      - "feature/ravel-v2-2026-10-05"
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust versions
+        run: rustc --version && cargo --version
+      - name: Install formatting and WASM target
+        run: |
+          rustup component add rustfmt
+          rustup target add wasm32-unknown-unknown
+      - name: Check RAVEL formatting
+        # Legacy modules have pre-existing formatting debt; do not hide it
+        # behind a falsely green cargo fmt --all claim.
+        run: rustfmt --edition 2021 --check zome_coordinator/src/lib.rs zome_integrity/src/entry_types.rs integration_tests/tests/ravel.rs
+      - name: Check workspace
+        run: cargo check --locked --workspace
+      - name: Integrity regression tests
+        run: cargo test --locked -p zome_integrity
+      - name: Build zomes
+        run: cargo build --locked --release --target wasm32-unknown-unknown

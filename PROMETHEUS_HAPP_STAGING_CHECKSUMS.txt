@@ -1,11 +1,12 @@
 # PROMETHEUS_HAPP_STAGING_CHECKSUMS.txt
-# Reproducible SHA-256 of every git-tracked file at commit 19de12d, 2026-07-05T09:19:10Z.
+# Reproducible SHA-256 of every git-tracked file at commit ebee762, 2026-10-06T19:05:11Z.
 # Regenerate with scripts/generate_staging_checksums.sh after changing tracked files.
 # Not the signed integrity record; the authoritative anchor is the release SHA256SUMS.asc.
 e35051d85b5a3471b4ecde128dd04182fc63c3aede0f4a3cc87d3a1b4954362f *./.cargo/config.toml
 18f43fb1de9fb3ccda040d5e5a12f4301664e2512c384920175638b8bce48490 *./.gitattributes
 1060b6bd6b6144ceb1978b3cbfa1a9b11e55bdc8e8d701c7b1ee1edee018fe94 *./.github/workflows/ci.yml
 8c2134eea885ad23b67f01d8f26f37a67a44a36fadd39af5d0d7fb50ba9c7665 *./.github/workflows/gateway-ci.yml
+66d41d727a148ac3e6ad626da9988112d7e13609a7d36db562179b4186857011 *./.github/workflows/ravel-ci.yml
 2df39b3fee4d5f6ef7faff6d19c1271248bf08466a16ba44568017acc5aa6662 *./.github/workflows/secret-scan.yml
 68c6e5afd277fde73e943d7f5107d15420e30584d04958b4d6f6b0c4eaa8ea42 *./.gitignore
 a0f626a480f4059b382c29ae1ed7f36daec3637fba6340e278a223bfcb182f19 *./CONTRIBUTING.md
@@ -13,13 +14,13 @@ d92609a15c9ca9d37280cce74fd26f5fedc3268abfd92e0b16580bee42ef11a9 *./Cargo.lock
 070df446cd27d5649f774f9fe79ef8b64c9fe54e29ac2cac6fdaf2768df8831f *./Cargo.toml
 b0e3aab5107977893ee1feba20a317b8e2bd4d03620267093248d3549e6537f3 *./LICENSE.md
 d687946c5271fc3d2689c0b9085e75695d75fd902db646c591579acd5155d4e2 *./PUBLICATION_BOUNDARY.md
-d0ffbc0938775bd9b81b83ee9bbf24842bbd182d8f80f46ee86f8205e318a5fa *./README.md
+e42896863216dffab6c908c4ec4461ef84352d99128f9c74ded6dac24139c946 *./README.md
 da164ebfa0a607908334ab37631011eb0e37d3220498aecbf2f279547a2f0c99 *./SECURITY.md
 78aa0a4ad1a1689e6f5b94484adb8a8dab2b9f1cb0a7539cb66155ce0fa48a1b *./bridge/package-lock.json
 8d25b7b86de5cf3ec561040a4570eb814318281790799ba58174b1b2fb511bee *./bridge/package.json
 2fc06931470e20096f2ca83b150ce4d2782bc33755e1a854bcae720d98d4ce90 *./bridge/server.mjs
 c49540e805096c1b656b70ac889cb818e009ec7dfb650c2f97e7cab21b3393a5 *./dnas/hearth/dna.yaml
-bc8442fff94186e1dc66a6dcdae921ef170be6fff8a730be8b2f290cccca7b51 *./docs/RUNTIME_BOUNDARY.md
+dc0bcb836534c3ba9682f74d2f57a0b5a0617cd4a6e4c34a7c12b71c6dc79ebe *./docs/RUNTIME_BOUNDARY.md
 1887758dd410246e059bb389d992ab61e1e10a67098371e49311c64afb369a6e *./docs/benchmark-intelligence/HOLOCHAIN_RUNTIME_DESIGN.md
 7bb628d34aed4cfea7ddf106ecd26b21467c88a2368d85998c9150884491850c *./docs/benchmark-intelligence/PROMETHEUS_BENCHMARK_INTELLIGENCE_LAYER.md
 fb610737c9cfccd1d912af320f245fe238bcc185cb9be5a356104aef5bc42da1 *./docs/runtime/GENESIS_BENCHMARK_RUNTIME_PROOF_2026_05_30.md
@@ -28,26 +29,27 @@ fb610737c9cfccd1d912af320f245fe238bcc185cb9be5a356104aef5bc42da1 *./docs/runtime
 a24836074431d52cf7464f720984d2cfc2d2cff325154c741a65cbd05b7bde1d *./docs/runtime/MAIN_RUNTIME_PROOF_2026_05_30.md
 2c6493459e51cf29a07d8f93f7ba2d092eec0ab60739f7dc7e9de97a15aadc2b *./docs/runtime/PROMETHEUS_RUNTIME_BRIDGE_PROOF_2026_05_30.md
 c5592b2d447bfc45dbf5093e209948ab16fbfd93cd1ebe84f3e3c0469e77891e *./docs/runtime/PROMETHEUS_RUNTIME_BRIDGE_SMOKE_TEST_2026_06_07.md
-ccdfd8937f42fc597f315248a7a6746646a25294e4c7dca1fc6e60459cae736a *./gateway/.env.example
+91bd6908933479cb39a060818e9250dd4b292fae6e139d14268c759fa290eba9 *./gateway/.env.example
 5378796307535df3ec8d8b15a2e2dc5641419c3d3060cfe32238c0fa973f7aa3 *./gateway/.nvmrc
-5dbef64fb50d25d20ae3803d5ec0e200b35cad5d355f217465b50e62d3813f58 *./gateway/README.md
+8e6b9340a840175d021aa769b7061c8c252648f93090a46da0f2d73868097b11 *./gateway/README.md
 edc6a71a002154ad885b6dc01ee73d872dcfecdf31ba104c839269ab01d7a9a8 *./gateway/package-lock.json
 60c5d5b7c132aac51c313e7b42a34e70e546b5919cc37e61296351c171a9c7e2 *./gateway/package.json
 26fc97883a6ec3384401cffd44ab2fe4a3866ff667a1043e61c38d56b5dcfe74 *./gateway/scripts/e2e_verify.mjs
 98bf2b0f39cb24eb588a390805d338aa285ab53c866c206ba1d9d5bdb4566707 *./gateway/scripts/finalize_results.mjs
 da4c8e433e4b8335fefaefecd6b87a208ab3116c8fa73d6dbfceb35f8eb25754 *./gateway/scripts/run_wp4.sh
-8d1aacacc40a6a2015af950f9877f8b9b8f341c227b7051b6a330348cd17b013 *./gateway/scripts/smoke.mjs
+a87a42879117b10b8c000029b3b130f10b30575ec0c3799813678c1f2e9f1d92 *./gateway/scripts/smoke.mjs
 c18589ce23ff16627a1eae32f3be6bed9593e2853de2b32ef2d188c694b44683 *./gateway/scripts/wp4_b7_verify.mjs
 c9cbe3901d1762fb5aa04ea5a5874607cd40cd4507fa93ccd5aa8b6fb491ef6f *./gateway/scripts/wp4_mqtt_verify.mjs
 18b5d5b9851c0ee9ffbf34ec8ec114553c34fb59190d10cb4c2dacc57990487a *./gateway/src/conductor.mjs
-82895edacc0c8b4d731de1c10fa14dfc7fee1464742eef16d5ae3348adfddb83 *./gateway/src/evidence.mjs
-43fd0e9d801ad52737dcb2af744e4e4a359ce3e2b8e90481527f78bbde87df73 *./gateway/src/ingest.mjs
+15e091715d1432a0139ac9ad375e65ef9a4c27fd6273219fc14ed2b499cfe995 *./gateway/src/evidence.mjs
+55592a73399645e355a5858f91aee3a06e0e1a04af28c85c0bf85407f18723d7 *./gateway/src/ingest.mjs
 7dfcc6656c470e702e39cf251db0dde6a82249e98420b12f3e9871e66cc22f90 *./gateway/src/runtime_client.mjs
 fd3ad88accc100e7d3790848323fd5f89057f3e17ce4ac2388681ca98ab7bd2a *./gateway/test/mosquitto/mosquitto.conf
 23ed4dc3e9c7dba3104570b7409aa424ccab2086b5f7dd6eb3f222596854dfeb *./happ.yaml
-214b67e76f48c6cc1646a4498cc2ed8a8e32fc8c541ce078ba3eb78707713581 *./integration_tests/Cargo.lock
-8aba6569d0cb3c1ff3bdcd0ffe94f075bbc879d77f45855c492b2742938542cb *./integration_tests/Cargo.toml
-97b8c7376953fe12963ea562e52c517ac2e072760f6f3cc3c7e998a54e2865f8 *./integration_tests/tests/conductor.rs
+07a5f5010ff7a900e75bb4797b5f0eb13bbd80bf8f11245b9863089f0f530509 *./integration_tests/Cargo.lock
+dc25f9bae38469dab7017e282ee83981656abb4aece22f2fe166d5b37bac6916 *./integration_tests/Cargo.toml
+a79a32fb8bc49e7fe7c349811c07d608ef5971326acb9003cbbcc3e87bdf4e81 *./integration_tests/tests/conductor.rs
+990e25685e6a4464b93f51d2119cfd2a7d01a38b613cef1e89fc7b6577d979b8 *./integration_tests/tests/ravel.rs
 a28edc7bce30169106447a50678bd128d89756b67f11225ec37553a968e06d53 *./release/v1.1.3-runtime-proof/CHANGELOG.md
 99f8bcd7a8b0f0e1d489c80f53bdbfbc7fcb87fec7022708cb36f66502d0de06 *./release/v1.1.3-runtime-proof/CLAIM_BOUNDARY.md
 33751b6081a625ba929cbdaf51224f77821567a4b1a2c8d3c20cc7b2fe2272c4 *./release/v1.1.3-runtime-proof/README.md
@@ -66,12 +68,12 @@ c6479fba47e804023410903316922a349c99d1cc99e87471ce66c4a4fb79dc08 *./scripts/runt
 48de1e67ed88715abd189c8ee93be8b1a369c0dbfbff9fd061e9d438ddbd6231 *./ui/vendor/holochain-client.js
 7b8a0cac67bf65088ed5ffaf7eb074a0225da00b44f84af7f4cf985a257fee17 *./web-happ.yaml
 d5a5d1725c50dd9f2d34445b76c7b0a4a44874f5cdd00fa1e7d098b838bd6b75 *./zome_coordinator/Cargo.toml
-07c6a3a0dd57d06bd44649e31118e5d4ea16ade878e98ff97f138cd1dce2ee3e *./zome_coordinator/src/lib.rs
+1ab3a8e0ee3f598eaeac0a451c3df7c1ffc1c55d18cc5452b587cf02dd7bfde2 *./zome_coordinator/src/lib.rs
 ce6a57fdefdacb94c546921a23d845f6dc6d991b620b27180950d2d2856cd7ea *./zome_integrity/Cargo.toml
 74b517be04b4570208bb9f5333ddf29a1351afaee7f1236498a7fc224375ea13 *./zome_integrity/src/admissibility.rs
 121d546c1efba5f1bfc7418920cb9b37a025556a94ae3ef2c7a78ca659d142fc *./zome_integrity/src/claim.rs
 6b5ebd5d88e8890a14be241b9dda42839ee856b65e01c0f9bd9c1508b92b94c0 *./zome_integrity/src/entries.rs
-7ed7ce027fcaf873a804ecd3f28b3800f786eed62716b18f8e5c459bb4fe7107 *./zome_integrity/src/entry_types.rs
+4bd9b2da64086677fa7f1d9379aa09c1f10467a4a0e69b334bee9b6a3515a2a7 *./zome_integrity/src/entry_types.rs
 690afde68461cc25e0e2ee4ddafa82d28e64be241c39e9af0785956258e50dba *./zome_integrity/src/holo_entries.rs
 ae6807f79a68849e6e459662e38d85c3a26a9d3b47a48af749e59e25067b3505 *./zome_integrity/src/lib.rs
 c93051a80b3fa3ccc43e39e7049cd3b5bca894c0a9e96581894f634748b09f7f *./zome_integrity/src/mrv.rs
