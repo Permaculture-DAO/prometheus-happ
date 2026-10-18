@@ -63,6 +63,9 @@ jobs:
         run: |
           set -euo pipefail
           cd "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release"
+          # Diagnostics contain only public WASM digests and sizes; never print environment/secrets.
+          sha256sum zome_integrity.wasm zome_coordinator.wasm
+          wc -c zome_integrity.wasm zome_coordinator.wasm
           echo '3089b324b51c0d1e88c5c8e2652a60762be30d9c92a7f3b0ca8e57e032a9ce98  zome_integrity.wasm' | sha256sum -c -
           echo '6b93a978f45fc1c4c8a9376fde9f605f84570a823d1154e15eff58b8db284370  zome_coordinator.wasm' | sha256sum -c -
           echo 'DEP01D_EXTERNAL_RUNNER_ARTIFACT_MATCH'
