@@ -30,6 +30,8 @@ jobs:
       CARGO_INCREMENTAL: '0'
       CARGO_BUILD_JOBS: '2'
       CARGO_TARGET_DIR: /tmp/dep01d-wasm-build
+      # Match registry source path used for the installed historical WASM.
+      CARGO_HOME: /home/giova/.cargo
     steps:
       - name: Checkout historical immutable release commit
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -52,6 +54,15 @@ jobs:
           set -euo pipefail
           rustup toolchain install 1.96.0 --profile minimal --target wasm32-unknown-unknown
           test "$(rustc +1.96.0 --version)" = "rustc 1.96.0 (ac68faa20 2026-05-25)"
+      - name: Prepare historical Cargo registry source location on disposable runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          # GitHub runner is ephemeral; never change on-device/production paths.
+          sudo install -d -m 0755 -o "$(id -u)" -g "$(id -g)" /home/giova /home/giova/.cargo
+          test "$CARGO_HOME" = "/home/giova/.cargo"
+          test -w "$CARGO_HOME"
+          echo "DEP01E_CARGO_HOME_PATH_PIN: PASS"
       - name: Build offline-recorded source with versioned Cargo config
         shell: bash
         run: |
