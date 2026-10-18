@@ -29,7 +29,7 @@ jobs:
     env:
       CARGO_INCREMENTAL: '0'
       CARGO_BUILD_JOBS: '2'
-      CARGO_TARGET_DIR: ${{ runner.temp }}/dep01d-wasm-build
+      CARGO_TARGET_DIR: /tmp/dep01d-wasm-build
     steps:
       - name: Checkout historical immutable release commit
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
