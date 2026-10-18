@@ -66,6 +66,35 @@ jobs:
           # Diagnostics contain only public WASM digests and sizes; never print environment/secrets.
           sha256sum zome_integrity.wasm zome_coordinator.wasm
           wc -c zome_integrity.wasm zome_coordinator.wasm
+          # Read-only section hashes to distinguish code from non-semantic metadata.
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          def leb(blob,pos):
+              num=0
+              for offset in range(7):
+                  b=blob[pos]
+                  pos+=1
+                  num|=(b&127)<<(7*offset)
+                  if b<128:return num,pos
+              raise ValueError("bad varuint")
+          for name in ("zome_integrity.wasm","zome_coordinator.wasm"):
+              blob=Path(name).read_bytes()
+              if blob[:8]!=bytes.fromhex("0061736d01000000"):raise ValueError("invalid wasm")
+              i=8
+              while i<len(blob):
+                  section=blob[i]
+                  i+=1
+                  size,i=leb(blob,i)
+                  data=blob[i:i+size]
+                  i+=size
+                  title=""
+                  if section==0:
+                      n,j=leb(data,0)
+                      title=data[j:j+n].decode("utf8","replace")
+                  print("DEP01D_SECTION",name,"id",section,"name",title,
+                        "bytes",len(data),"sha256",hashlib.sha256(data).hexdigest())
+          PY
           echo '3089b324b51c0d1e88c5c8e2652a60762be30d9c92a7f3b0ca8e57e032a9ce98  zome_integrity.wasm' | sha256sum -c -
           echo '6b93a978f45fc1c4c8a9376fde9f605f84570a823d1154e15eff58b8db284370  zome_coordinator.wasm' | sha256sum -c -
           echo 'DEP01D_EXTERNAL_RUNNER_ARTIFACT_MATCH'
