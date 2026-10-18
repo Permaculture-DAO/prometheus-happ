@@ -2,7 +2,7 @@
 
 Status: **DRAFT / NOT MERGED / NOT A SIGNED RELEASE**.
 
-This workflow runs only on pull requests that modify this exact workflow or `ci/dep01d/**`. It has `contents: read` permission, no repository writes, no signing credentials, no deployment, no self-hosted runner, no Holochain/admin/tunnel secret access, and no `workflow_dispatch` promotion path.
+This PR extends the **existing** `.github/workflows/ci.yml` `happ-ci` pipeline with the narrow `dep01d-pinned-wasm` job. The existing pipeline already runs on pull requests. The new job has `contents: read` permission, no repository writes, no signing credentials, no deployment, no self-hosted runner, no Holochain/admin/tunnel secret access, and no promotion path. The initially proposed separate DEP-01D workflow was removed from this branch to avoid competing pipelines.
 
 ## Immutable inputs
 
@@ -18,7 +18,7 @@ This workflow runs only on pull requests that modify this exact workflow or `ci/
 
 1. **Prior local build** on federica: PASS for both WASM SHA-256 with **explicit custom backend** `RUSTFLAGS='--cfg getrandom_backend="custom" -C link-arg=--allow-undefined'`; documented in ops-docs draft PR #31.
 2. **Repository-config build**: the config committed at the historical source SHA is `getrandom_backend="unsupported"`. Whether it independently yields equal bytes requires a separate check; it is NOT automatically covered by (1).
-3. **Independent GitHub-hosted runner**: this workflow uses Ubuntu 24.04, installs pinned Rust 1.96.0, checks out the exact historical SHA and verifies `Cargo.lock`, then builds with the repository's own config. It fails closed if either produced WASM differs. CI success, once observed, would demonstrate a second build environment, **not independent human review or release signing**.
+3. **Independent GitHub-hosted runner**: the new job in the existing workflow uses Ubuntu 24.04, installs pinned Rust 1.96.0, checks out the exact historical SHA and verifies `Cargo.lock`, then builds with the repository's own config. It fails closed if either produced WASM differs. CI success, once observed, would demonstrate a second build environment, **not independent human review or release signing**.
 
 GitHub-hosted machines are an independent runtime from `federica`, but their secure provenance, executor image, supply chain and identity need independent review. A green check on one machine is not independently attested organization-level release authorization.
 
