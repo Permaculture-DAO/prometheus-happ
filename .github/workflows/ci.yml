@@ -19,3 +19,50 @@ jobs:
       # .cargo/config.toml carries -C link-arg=--allow-undefined so the conductor
       # host functions (__hc__*) remain wasm imports. Conductor smoke test is a
       # local/manual runbook step (ops-docs), not run in CI.
+
+  dep01d-pinned-wasm:
+    name: DEP-01D independently rebuild deployed WASM
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_TARGET_DIR: ${{ runner.temp }}/dep01d-wasm-build
+    steps:
+      - name: Checkout historical immutable release commit
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: 2e84d3a3f69ade0481cd5c778f98a9a68d82af6d
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Validate source, Cargo lock and repository config
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "2e84d3a3f69ade0481cd5c778f98a9a68d82af6d"
+          echo 'd92609a15c9ca9d37280cce74fd26f5fedc3268abfd92e0b16580bee42ef11a9  Cargo.lock' | sha256sum -c -
+          grep -Fq 'getrandom_backend="unsupported"' .cargo/config.toml
+          grep -Fq -- '--allow-undefined' .cargo/config.toml
+          test -z "$(git status --porcelain=v1)"
+      - name: Install exact original Rust version and WASM target
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.96.0 --profile minimal --target wasm32-unknown-unknown
+          test "$(rustc +1.96.0 --version)" = "rustc 1.96.0 (ac68faa20 2026-05-25)"
+      - name: Build offline-recorded source with versioned Cargo config
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset RUSTFLAGS CARGO_ENCODED_RUSTFLAGS || true
+          cargo +1.96.0 build --locked --release --target wasm32-unknown-unknown -p zome_integrity -p zome_coordinator
+      - name: Fail-closed compare to installed bundle WASM byte hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release"
+          echo '3089b324b51c0d1e88c5c8e2652a60762be30d9c92a7f3b0ca8e57e032a9ce98  zome_integrity.wasm' | sha256sum -c -
+          echo '6b93a978f45fc1c4c8a9376fde9f605f84570a823d1154e15eff58b8db284370  zome_coordinator.wasm' | sha256sum -c -
+          echo 'DEP01D_EXTERNAL_RUNNER_ARTIFACT_MATCH'
