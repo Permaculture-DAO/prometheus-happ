@@ -8,3 +8,4 @@ publish = false
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
+[workspace]
