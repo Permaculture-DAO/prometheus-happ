@@ -1,0 +1,4 @@
+[target.wasm32-unknown-unknown]
+# Match prometheus-happ's working Holochain host-import compilation contract.
+# No entropy in integrity zome; host __hc__ functions imported at runtime.
+rustflags = ['--cfg', 'getrandom_backend="unsupported"', '-C', 'link-arg=--allow-undefined']
