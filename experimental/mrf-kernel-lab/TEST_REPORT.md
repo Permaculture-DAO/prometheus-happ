@@ -13,3 +13,26 @@ Local WASM SHA-256: `e206d5c0557ed22d93500a2cd6fc847df0e0c635cd2f0a03c61e98d9e49
 **NOT RUN:** WASM execution/parity, Holochain conductor, fuzzing, model hash runtime integrity, attestation quorum, field calibration, ecological/out-of-site validation, device energy, DHT UnresolvedDependencies.
 
 Gate: lab kernel arithmetic GO; zome-side/REAL/production claims NO-GO pending the above.
+
+
+---
+## Stage Gate 0–30 — executed evidence (2026-10-19, federica WSL)
+
+**PASS — Native/WASM runtime parity**: Node.js v18.19.1 instantiated the compiled `wasm32-unknown-unknown` module with zero imports and executed `prometheus_mrf_lab_y0/y1`. A native Rust binary independently generated 4,108 input vectors (12 edge vectors, 4,096 deterministic LCG vectors) and expected outputs using the same Rust reference crate. Exactly 8,216 scalar comparisons passed with **zero mismatches** (includes i64 extremes, negative inputs, threshold equality). Executed artifact: 28,681 bytes, SHA-256 `e206d5c0557ed22d93500a2cd6fc847df0e0c635cd2f0a03c61e98d9e49caf48`.
+
+Reproduction (after building both artifacts):
+```sh
+cargo build --release --bin mrf_vectors --manifest-path experimental/mrf-kernel-lab/Cargo.toml
+cargo build --release --target wasm32-unknown-unknown --manifest-path experimental/mrf-kernel-lab/Cargo.toml
+node experimental/mrf-kernel-lab/wasm_parity_runner.cjs \
+  experimental/mrf-kernel-lab/target/wasm32-unknown-unknown/release/prometheus_mrf_kernel_lab.wasm \
+  experimental/mrf-kernel-lab/target/release/mrf_vectors
+```
+
+**PASS — Host Holochain integrity unit tests:** `zome_integrity_lab` using HDK 0.6.1 + HDI 0.7.1, 9/9 passed in WSL. They exercise synthetic acceptance and negative checks for forged outputs, wrong inputs, incorrect hash, TEST namespace, REAL rejection, non-authoritative claim and financial-admission rejection. This is **host execution of entry validation logic**, not evidence of conductor execution.
+
+**PASS — Integrity zome WASM compilation:** compilation succeeded on isolated standalone crate using exactly the existing hApp WASM toolchain settings: `getrandom_backend="unsupported"` and linker `--allow-undefined` for Holochain host imports. The isolated binary is unsigned, not a signed DNA release. Frozen synthetic PMRF-BIN-v1 115-byte model SHA-256: `e074715a26129c8f00e828774eadc71ef33f94a620c0dcd0e00216b6156bda5f`.
+
+**PASS — Synthetic DNA packaging:** integrity/coordinator WASM isolated DNA bundle was created using `hc dna pack`; explicitly **not** the existing `hearth.dna`. A conductor sweettest run remains a separate gate; do not infer success from compilation, packaging, or host-only tests.
+
+**OPEN:** conductor outcome, independent rebuild, fuzzing, deterministic model governance/admission, oracle independence, scientific validity, device energy. The REAL_DATA_PERSISTENCE_GATE_CLOSED is retained.
