@@ -36,3 +36,17 @@ node experimental/mrf-kernel-lab/wasm_parity_runner.cjs \
 **PASS — Synthetic DNA packaging:** integrity/coordinator WASM isolated DNA bundle was created using `hc dna pack`; explicitly **not** the existing `hearth.dna`. A conductor sweettest run remains a separate gate; do not infer success from compilation, packaging, or host-only tests.
 
 **OPEN:** conductor outcome, independent rebuild, fuzzing, deterministic model governance/admission, oracle independence, scientific validity, device energy. The REAL_DATA_PERSISTENCE_GATE_CLOSED is retained.
+
+
+## Cross-environment CI confirmation — GitHub Actions (2026-10-19)
+
+The first CI attempt exposed a Cargo workspace-isolation problem. It was corrected by declaring an empty workspace in the standalone kernel manifest; no main workspace packages or production logic changed.
+
+The next GitHub Actions run [39325521772](https://github.com/Permaculture-DAO/prometheus-happ/actions/runs/39325521772) completed the **rust-wasm-parity** job successfully on an independent Ubuntu runner:
+- 4,108 vectors, 8,216 i64 comparisons, zero mismatches;
+- Node.js v22.23.3, WASM imports = 0, native process exited 0;
+- independently compiled WASM: 29,244 bytes, SHA-256 ada00809503adfc57dfbed7aa4b930271c2788a90d2fdcd3df0c8e36fcdfb373.
+
+Compared with the local WSL WASM (28,681 bytes; e206d5c0557ed22d93500a2cd6fc847df0e0c635cd2f0a03c61e98d9e49caf48), the binary hash and size differ under a different toolchain. **Numerical parity is demonstrated; byte-identical reproducible builds are NOT demonstrated.** Freeze compiler, flags and dependencies before signed release claims.
+
+The first CI attempt also completed independent HDI host tests successfully. No independent multi-peer DHT tests or field/ecological validation are implied.
