@@ -41,3 +41,12 @@ Total wall time including Rust test compilation around 264s. The update/delete t
 
 ## Next required gate
 Run separate two-conductor exchange and local/remote read checks; add exact rejection-reason assertions; explicitly test RegisterUpdate / RegisterDelete op variants and network partition/rejoin; preserve original action and show it is retrievable after failed mutation. Independently review new DNA artifact hashes and source governance before any controlled admission.
+
+
+## Two-conductor distributed gate — partial / NOT PASS
+
+A separate `two_conductors.rs` suite using two independently initialized TEST-only SweetConductors and the exact Gate-4 packed DNA completed `SweetConductor::exchange_peer_info([&a,&b])` and printed `PEER_INFO_EXCHANGE=PASS`. The following dual-conductor write/validation calls **did not finish with a passing test result** within the bounded run (outer process returned exit 1 after 446.61 s including compilation). **Do not claim two-conductor model validation or DHT replication.**
+
+To isolate the success from the incomplete stage, a standalone `peer_info_smoke.rs` asserts just the peer exchange and prints its own final test result. This is a separate outcome; its execution status must be recorded before marking even this narrower smoke PASS.
+
+Remaining required: explicit cross-peer get/validation of a known action, propagation convergence, peer partition, remote forged op rejection, original record retained after failed mutations, revocation and hash policy under distinct conductors. One-conductor 7/7 gate remains valid and unchanged.
