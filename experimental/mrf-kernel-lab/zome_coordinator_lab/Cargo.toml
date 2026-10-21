@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 hdk = "=0.6.1"
 holochain_serialized_bytes = "=0.0.57"
+serde = { version = "1.0", features = ["derive"] }
 prometheus_mrf_integrity_lab = { path = "../zome_integrity_lab" }
 
 [workspace]
