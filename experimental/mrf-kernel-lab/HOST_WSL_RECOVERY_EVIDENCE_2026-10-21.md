@@ -24,3 +24,18 @@
 5. Preserve separate conclusions for in-process exact-DNA 7/7 PASS, independent CI PASS, peer-info discovery, and true DHT replication. Neither prior PASS proves REAL-world evidence or oracle independence.
 
 **Current restriction:** `REAL_DATA_PERSISTENCE_GATE_CLOSED`, production write security, scientific certification, Aeterna/Ravel/PRU/RAP/TRBK financial/token boundaries and signed Canon remain unchanged.
+
+
+## Verified bounded two-conductor discovery smoke — 2026-10-21
+
+Following recovery of Ubuntu startup and local SQLite, the precompiled exact-DNA TEST binary `peer_info_smoke-daee6650e4bbccb3` ran on the recovered Ubuntu WSL instance:
+```text
+running 1 test
+test two_test_conductors_exchange_peer_info ...
+TWO_CONDUCTORS_PEER_INFO_DISCOVERY=PASS
+ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 75.23s
+```
+The containing Windows process exited 0 (about 100.17s including Ubuntu startup). This is **real, completed two-conductor peer-info discovery PASS**, superseding the earlier incomplete and database-failed discovery tests *only for this narrow scenario*.
+
+The host C free capacity measured ~4.239 GiB immediately after the run, D ~0.631 GiB; both WSL distributions then reported Stopped. The more expensive two-conductor receipt creation/independent validation case and **remote DHT record fetch** are separate gates, never implied by the discovery PASS.
