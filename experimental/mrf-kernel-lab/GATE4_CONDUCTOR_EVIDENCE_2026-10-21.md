@@ -68,3 +68,14 @@ test result: FAILED. 0 passed; 1 failed
 This supports an environment/database-path initialization failure on the second in-process conductor, **not** a verified cryptographic or network consensus failure. Immediately afterward, basic WSL `df` commands failed to start, returning `getpwnam(giova) failed 5`, `getpwuid(1000) failed 5` and `fopen(/etc/default/locale) failed 5`, reinforcing an environment-level blocker. Do NOT silently reset WSL, delete databases or touch production services to force test success.
 
 **Final network gate assessment:** initial combined harness printed `PEER_INFO_EXCHANGE=PASS` but did not finish its full test; the isolated smoke test ended FAILED before that check due database initialization. Thus independent two-conductor validation and DHT replication both remain **NOT VERIFIED / HOLD**. Run safe independent host filesystem/WSL health diagnostics, use an isolated writable temporary directory, preserve logs and determine root cause before rerunning. No claim of live site evidence, external independent oracles or scientific certification.
+
+
+## Post-recovery gate reconciliation — 2026-10-21
+
+Following confirmed host disk-pressure mitigation, a **separate, completed** `peer_info_smoke` test (same TEST DNA `8f32a4bf0ca75f04649671cc6d5b73cecebdb0bd36a51fb58700f3837717abca`) returned `TWO_CONDUCTORS_PEER_INFO_DISCOVERY=PASS`, **1 passed, 0 failed**, 75.23s, exit code 0. This supersedes the old environment-blocked discovery result for peer-info only.
+
+A fresh replay of the compiled full two-conductor application harness with a Windows disk guard (C >=4 GiB), an Ubuntu `timeout 230s`, and source calls executed on two isolated conductors printed `PEER_INFO_EXCHANGE=PASS`, then did **not** complete the local synthetic receipt calls before timeout; the Windows wrapper exited 1 at ~242.09s. Free disk stayed ~4.235 GiB C / 0.631 GiB D. This outcome is **TIMEOUT / NOT PASS**, and must not be misreported as distributed inference validation, DHT replication or model rejection under a second peer.
+
+The `two_conductors.rs` source now includes stage markers `STAGE_A_CREATE_BEGIN`, `STAGE_B_CREATE_BEGIN`, `STAGE_B_REAL_REJECTION_BEGIN` and per-call bounded timeouts. **This instrumented version has been committed but not executed** because of constrained host disk. Thus it is an unverified diagnostic change, not new evidence. See [Gate 5 cross-peer test contract](GATE5_DHT_REPLICATION_TEST_CONTRACT_2026-10-21.md) and [host recovery evidence](HOST_WSL_RECOVERY_EVIDENCE_2026-10-21.md).
+
+The earlier single-conductor 7/7 PASS is unchanged. All real environmental/scientific/financial gates remain closed.
