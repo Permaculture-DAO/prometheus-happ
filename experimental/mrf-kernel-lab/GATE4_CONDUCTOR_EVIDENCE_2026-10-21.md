@@ -50,3 +50,21 @@ A separate `two_conductors.rs` suite using two independently initialized TEST-on
 To isolate the success from the incomplete stage, a standalone `peer_info_smoke.rs` asserts just the peer exchange and prints its own final test result. This is a separate outcome; its execution status must be recorded before marking even this narrower smoke PASS.
 
 Remaining required: explicit cross-peer get/validation of a known action, propagation convergence, peer partition, remote forged op rejection, original record retained after failed mutations, revocation and hash policy under distinct conductors. One-conductor 7/7 gate remains valid and unchanged.
+
+
+## Environment blocker on isolated peer-discovery replay — 2026-10-21
+
+A second `peer_info_smoke.rs` run progressed past compilation, launched the test, then **FAILED** (one failed test; 111.57s test runtime) *before* completing the peer exchange:
+
+```text
+B: ConductorError(StateMutationError(DatabaseError(
+  DbConnectionPoolError(Error(Some(
+    "unable to open database file: /tmp/holochain-test-environments.../databases/wasm/wasm"
+  )))
+)))
+test result: FAILED. 0 passed; 1 failed
+```
+
+This supports an environment/database-path initialization failure on the second in-process conductor, **not** a verified cryptographic or network consensus failure. Immediately afterward, basic WSL `df` commands failed to start, returning `getpwnam(giova) failed 5`, `getpwuid(1000) failed 5` and `fopen(/etc/default/locale) failed 5`, reinforcing an environment-level blocker. Do NOT silently reset WSL, delete databases or touch production services to force test success.
+
+**Final network gate assessment:** initial combined harness printed `PEER_INFO_EXCHANGE=PASS` but did not finish its full test; the isolated smoke test ended FAILED before that check due database initialization. Thus independent two-conductor validation and DHT replication both remain **NOT VERIFIED / HOLD**. Run safe independent host filesystem/WSL health diagnostics, use an isolated writable temporary directory, preserve logs and determine root cause before rerunning. No claim of live site evidence, external independent oracles or scientific certification.
