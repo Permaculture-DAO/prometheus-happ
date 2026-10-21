@@ -49,4 +49,25 @@ async fn synthetic_conductor_valid_and_adversarial_gates() {
     let res:Result<ActionHash,_>=conductor.call_fallible(&zome,"create_synthetic_receipt",x).await;
     assert!(res.is_err(),"GATE_5 financial authority must fail");
     println!("GATE_5_FINANCIAL_PROMOTION_REJECTED=PASS");
+
+    // Gates 6-8: immutable receipt cannot be updated, deleted or linked.
+    let original:ActionHash=conductor.call(&zome,"create_synthetic_receipt",toy()).await;
+    let updated:Result<ActionHash,_>=conductor.call_fallible(
+        &zome,"update_synthetic_receipt",(original.clone(),toy())
+    ).await;
+    assert!(updated.is_err(),"GATE_6 receipt update must be rejected");
+    println!("GATE_6_UPDATE_REJECTED=PASS");
+
+    let deleted:Result<ActionHash,_>=conductor.call_fallible(
+        &zome,"delete_synthetic_receipt",original.clone()
+    ).await;
+    assert!(deleted.is_err(),"GATE_7 receipt delete must be rejected");
+    println!("GATE_7_DELETE_REJECTED=PASS");
+
+    let linked:Result<ActionHash,_>=conductor.call_fallible(
+        &zome,"link_synthetic_receipts",(original.clone(),original)
+    ).await;
+    assert!(linked.is_err(),"GATE_8 unauthorized link must be rejected");
+    println!("GATE_8_LINK_REJECTED=PASS");
+
 }
