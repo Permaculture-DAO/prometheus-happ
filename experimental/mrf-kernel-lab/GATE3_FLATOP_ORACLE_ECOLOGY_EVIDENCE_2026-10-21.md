@@ -36,3 +36,21 @@ Two separate-conductor consistency scenario `peer_consistency.rs`: **not yet ver
 - Production runtime signed release and `REAL_DATA_PERSISTENCE_GATE_CLOSED` remain untouched. GitHub branches remain draft.
 
 **Gate disposition:** CONDITIONAL GO for exact-DNA lab model-conformity / negative cases only; HOLD on cross-host and field/finance admission.
+
+
+## Verified multi-conductor DHT consistency — 2026-10-21
+
+The provisional *peer-consistency PENDING* note above is superseded **only for this precise TEST scenario**.
+
+**WSL test output** (`conductor_tests/tests/peer_consistency.rs`):
+```
+test separate_conductors_replicate_only_valid_test_receipts ... GATE_TWO_CONDUCTORS_STARTED=PASS
+GATE_TWO_CONDUCTORS_CONSISTENCY=PASS
+GATE_TWO_CONDUCTORS_FORGERY_REJECTED=PASS
+ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 233.95s
+```
+
+**How executed:** two separately instantiated `SweetConductor` instances with distinct agent keys and per-conductor test environments in **one localhost/WSL test process**, `SweetConductorBatch::from_standard_config_rendezvous(2)`. Installed the same exact TEST DNA SHA-256 `a444187b2c1e4eb4307c81adf72f545dd78e0ff27e8d2f64aca8b0952e9db62b`; awaited initial consistency; each agent submitted a conforming synthetic receipt; `await_consistency` returned success; forged receipt was rejected on conductor B. End-to-end tool runtime including build ~361.36s; test-only runtime 233.95s.
+
+**Supported:** local two-conductor TEST DHT consistency and one forged receipt rejected. **NOT supported:** physically independent hosts, production deployment, public network, partitions, censorship, hostile peer quorum, real source data, ecological verification, independent oracle custody, financial/token authority. No REAL gate changed.
