@@ -50,3 +50,12 @@ The next GitHub Actions run [39325521772](https://github.com/Permaculture-DAO/pr
 Compared with the local WSL WASM (28,681 bytes; e206d5c0557ed22d93500a2cd6fc847df0e0c635cd2f0a03c61e98d9e49caf48), the binary hash and size differ under a different toolchain. **Numerical parity is demonstrated; byte-identical reproducible builds are NOT demonstrated.** Freeze compiler, flags and dependencies before signed release claims.
 
 The first CI attempt also completed independent HDI host tests successfully. No independent multi-peer DHT tests or field/ecological validation are implied.
+
+
+## Consolidated synthetic conductor PASS — 2026-10-21
+
+Supersedes earlier "conductor NOT RUN" notes **only for the five scenarios actually tested**. One exact-DNA in-process Holochain conductor test (150.83 seconds test time) has PASSED, checking valid TEST receipt acceptance, forged output rejection, REAL receipt rejection, wrong model-hash rejection and rejection of financial promotion. It was a **single test containing five checks**, not five network peers.
+
+Complete artifact/hash/command/results: [CONDUCTOR_EVIDENCE_2026-10-21.md](CONDUCTOR_EVIDENCE_2026-10-21.md). Additional synthetic kernel adversarial tests: 8/8 PASS locally, resulting in 21 total kernel tests. CI confirmed all kernel parity and HDI host test jobs on branch following 2026-10-21 changes.
+
+**NO-GO continues:** multi-peer DHT validation, non-StoreEntry op coverage, actual cryptographic hash check against baked model, independent risk/eco MRV, REAL data, production migration, or token/capital consequences. PR remains draft.
