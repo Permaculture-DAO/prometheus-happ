@@ -27,7 +27,7 @@ fn toy() -> serde_json::Value {
 async fn synthetic_conductor_valid_and_adversarial_gates() {
     let (conductor,zome)=setup().await;
     // Gate 1: valid TEST synthetic receipt passes.
-    let _:ActionHash=conductor.call(&zome,"create_synthetic_receipt",toy()).await;
+    let created:ActionHash=conductor.call(&zome,"create_synthetic_receipt",toy()).await;
     println!("GATE_1_TEST_VALID=PASS");
     // Gate 2: forged output rejected by the integrity callback.
     let mut x=toy(); x["output_i64"]=serde_json::json!([8,17]);
@@ -49,4 +49,20 @@ async fn synthetic_conductor_valid_and_adversarial_gates() {
     let res:Result<ActionHash,_>=conductor.call_fallible(&zome,"create_synthetic_receipt",x).await;
     assert!(res.is_err(),"GATE_5 financial authority must fail");
     println!("GATE_5_FINANCIAL_PROMOTION_REJECTED=PASS");
+    // Gate 6: even correct TEST data cannot mutate an existing receipt.
+    let res:Result<ActionHash,_>=conductor.call_fallible(
+        &zome,"try_update_synthetic_receipt",created.clone()).await;
+    assert!(res.is_err(),"GATE_6 update must fail");
+    println!("GATE_6_MUTATION_REJECTED=PASS");
+    // Gate 7: the audit trail cannot be rewritten by delete.
+    let res:Result<ActionHash,_>=conductor.call_fallible(
+        &zome,"try_delete_synthetic_receipt",created.clone()).await;
+    assert!(res.is_err(),"GATE_7 deletion must fail");
+    println!("GATE_7_DELETION_REJECTED=PASS");
+    // Gate 8: undefined links cannot be smuggled into the LAB DNA.
+    let res:Result<ActionHash,_>=conductor.call_fallible(
+        &zome,"try_link_synthetic_receipt",created).await;
+    assert!(res.is_err(),"GATE_8 unauthorized link must fail");
+    println!("GATE_8_LINK_REJECTED=PASS");
+
 }
