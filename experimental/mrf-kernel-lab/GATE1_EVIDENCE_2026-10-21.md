@@ -50,3 +50,20 @@ Total call including host compilation took about 286 seconds.
 - No REAL_DATA_PERSISTENCE_GATE_CLOSED change. No PRU/RAP/TRBK, capital, legal, insurance, certification or live rollout authority.
 
 Disposition: **CONDITIONAL-GO** for the next isolated adversarial lab increment; **NO-GO** for real or production use.
+
+
+## Diagnostic replay — rejection reason verified (2026-10-21)
+
+After the first eight-scenario pass, the same in-process TEST DNA `8b2f9e2321a580158a1c7ddebb18144b1b3ef8f7f65aeebbb6e75383083cfe9c` was re-run with stronger tests. For every negative action, the test now inspects the `call_fallible` error representation and requires the specific expected integrity callback message; returning a generic error (e.g. function missing) no longer suffices.
+
+Expected error markers, each verified in the executed harness:
+- Output forgery → `synthetic MRF result mismatch`
+- REAL submission → `REAL_DATA_PERSISTENCE_GATE_CLOSED`
+- Invalid declared model hash → `model artifact hash`
+- Financial promotion → `model-conformity authority`
+- Update/delete attempts → `append-only`
+- Unauthorized link → `do not support links`
+
+**Actual execution output:** `GATE_1` to `GATE_8` all PASS; `test result: ok. 1 passed; 0 failed`; **101.92 seconds test runtime** (243.15 seconds including rebuild/replay invocation). This supersedes the earlier caveat that errors were not attributable to a specific callback, for these seven rejected scenarios on this DNA. It does not establish all possible FlatOp variants, multi-peer replication or absence of other bypasses.
+
+**Important:** the original laboratory DNA, source record, production runtime and REAL gate remain unchanged. The strengthened test source is included in draft PR #43.
