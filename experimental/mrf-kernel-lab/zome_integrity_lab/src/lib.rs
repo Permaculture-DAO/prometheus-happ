@@ -3,7 +3,7 @@
 //! Model hash is pinned to 115-byte synthetic PMRF-BIN-v1 artifact.
 //! IMPORTANT: This callback proves deterministic model conformity, not truth.
 use hdk::prelude::*;
-use hdi::prelude::{FlatOp, OpEntry};
+use hdi::prelude::{FlatOp, OpEntry, OpRecord, OpUpdate};
 use prometheus_mrf_kernel_lab::synthetic_forest;
 use sha2::{Digest, Sha256};
 
@@ -74,17 +74,40 @@ pub enum LinkTypes { SyntheticReceipt }
 
 #[hdk_extern]
 pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
-    if let FlatOp::StoreEntry(
-        OpEntry::CreateEntry { app_entry, .. } |
-        OpEntry::UpdateEntry { app_entry, .. },
-    ) = op.flattened::<EntryTypes, LinkTypes>()?
-    {
-        let result = match app_entry {
-            EntryTypes::SyntheticMrfReceipt(e) => e.validate_entry(),
-        };
-        return Ok(result);
-    }
-    Ok(ValidateCallbackResult::Valid)
+    // Synthetic receipts are append-only. Reject all attempts to mutate or
+    // remove past decisions and all link operations in this experimental DNA.
+    // Other host/system operations, including agent activity, remain governed
+    // by Holochain's standard validation constraints.
+    let result = match op.flattened::<EntryTypes, LinkTypes>()? {
+        FlatOp::StoreRecord(OpRecord::CreateEntry { app_entry, .. })
+        | FlatOp::StoreEntry(OpEntry::CreateEntry { app_entry, .. }) => {
+            match app_entry {
+                EntryTypes::SyntheticMrfReceipt(e) => e.validate_entry(),
+            }
+        }
+        FlatOp::StoreRecord(OpRecord::UpdateEntry { .. })
+        | FlatOp::StoreRecord(OpRecord::UpdatePrivateEntry { .. })
+        | FlatOp::StoreRecord(OpRecord::DeleteEntry { .. })
+        | FlatOp::StoreEntry(OpEntry::UpdateEntry { .. })
+        | FlatOp::RegisterUpdate(OpUpdate::Entry { .. })
+        | FlatOp::RegisterUpdate(OpUpdate::PrivateEntry { .. })
+        | FlatOp::RegisterDelete(_) => ValidateCallbackResult::Invalid(
+            "MRF_SYNTHETIC_RECEIPTS_APPEND_ONLY: updates and deletes forbidden".into(),
+        ),
+        FlatOp::StoreRecord(OpRecord::CreatePrivateEntry { .. }) => {
+            ValidateCallbackResult::Invalid(
+                "MRF_SYNTHETIC_RECEIPTS_PUBLIC_TEST_ONLY".into(),
+            )
+        }
+        FlatOp::StoreRecord(OpRecord::CreateLink { .. })
+        | FlatOp::StoreRecord(OpRecord::DeleteLink { .. })
+        | FlatOp::RegisterCreateLink { .. }
+        | FlatOp::RegisterDeleteLink { .. } => ValidateCallbackResult::Invalid(
+            "MRF_SYNTHETIC_NO_LINK_MUTATION: use separate governed provenance".into(),
+        ),
+        _ => ValidateCallbackResult::Valid,
+    };
+    Ok(result)
 }
 
 #[cfg(test)]
