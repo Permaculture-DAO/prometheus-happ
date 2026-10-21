@@ -1,0 +1,50 @@
+name: mrf-kernel-synthetic-parity
+on:
+  push:
+    paths:
+      - "experimental/mrf-kernel-lab/**"
+      - ".github/workflows/mrf-kernel-synthetic-parity.yml"
+  pull_request:
+    paths:
+      - "experimental/mrf-kernel-lab/**"
+      - ".github/workflows/mrf-kernel-synthetic-parity.yml"
+permissions:
+  contents: read
+jobs:
+  rust-wasm-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: experimental/mrf-kernel-lab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Native Rust tests
+        run: cargo test
+      - name: Build native reference and WASM
+        run: |
+          cargo build --release --bin mrf_vectors
+          cargo build --release --target wasm32-unknown-unknown
+      - name: Execute and compare WASM outputs
+        run: |
+          node wasm_parity_runner.cjs \
+            target/wasm32-unknown-unknown/release/prometheus_mrf_kernel_lab.wasm \
+            target/release/mrf_vectors
+  integrity-host-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: experimental/mrf-kernel-lab/zome_integrity_lab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: TEST-only HDI validation unit tests
+        run: cargo test
+      - name: Experimental HDI WASM compile
+        run: cargo build --release --target wasm32-unknown-unknown

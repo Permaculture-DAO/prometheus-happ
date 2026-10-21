@@ -1,0 +1,15 @@
+[package]
+name = "prometheus_mrf_coordinator_lab"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+hdk = "=0.6.1"
+holochain_serialized_bytes = "=0.0.57"
+prometheus_mrf_integrity_lab = { path = "../zome_integrity_lab" }
+
+[workspace]

@@ -1,0 +1,14 @@
+manifest_version: "0"
+name: prometheus_mrf_synthetic_lab
+integrity:
+  network_seed: "TEST-MRF-INTEGRITY-20261019"
+  properties: ~
+  zomes:
+    - name: prometheus_mrf_integrity_lab
+      path: ./wasm/prometheus_mrf_integrity_lab.wasm
+coordinator:
+  zomes:
+    - name: prometheus_mrf_coordinator_lab
+      path: ./wasm/prometheus_mrf_coordinator_lab.wasm
+      dependencies:
+        - name: prometheus_mrf_integrity_lab
