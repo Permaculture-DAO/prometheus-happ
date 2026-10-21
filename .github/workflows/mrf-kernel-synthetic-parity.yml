@@ -48,3 +48,7 @@ jobs:
         run: cargo test
       - name: Experimental HDI WASM compile
         run: cargo build --release --target wasm32-unknown-unknown
+      - name: Experimental coordinator WASM compile (TEST-only)
+        run: |
+          cd ../zome_coordinator_lab
+          cargo build --release --target wasm32-unknown-unknown
