@@ -3,8 +3,9 @@
 //! Model hash is pinned to 115-byte synthetic PMRF-BIN-v1 artifact.
 //! IMPORTANT: This callback proves deterministic model conformity, not truth.
 use hdk::prelude::*;
-use hdi::prelude::{FlatOp, OpEntry};
-use prometheus_mrf_kernel_lab::synthetic_forest;
+use hdi::prelude::{FlatOp, OpEntry, OpRecord, OpUpdate};
+use prometheus_mrf_kernel_lab::{synthetic_forest, Forest};
+use sha2::{Digest, Sha256};
 
 pub const FROZEN_TOY_MODEL_SHA256: &str =
     "e074715a26129c8f00e828774eadc71ef33f94a620c0dcd0e00216b6156bda5f";
@@ -24,6 +25,12 @@ pub struct MrfSyntheticReceipt {
 
 impl MrfSyntheticReceipt {
     pub fn validate_entry(&self) -> ValidateCallbackResult {
+        self.validate_with_model(&synthetic_forest())
+    }
+
+    // Tests may supply a tampered model. Production uses only the compiled frozen
+    // forest, and every validator re-hashes the EXACT serialized model bytes.
+    fn validate_with_model(&self, model: &Forest) -> ValidateCallbackResult {
         // Fail closed: never allow a REAL entry through this laboratory DNA.
         if self.evidence_class != "TEST" {
             return ValidateCallbackResult::Invalid(
@@ -33,7 +40,17 @@ impl MrfSyntheticReceipt {
             return ValidateCallbackResult::Invalid(
                 "synthetic receipt requires TEST-namespaced subject".into());
         }
-        if self.model_sha256 != FROZEN_TOY_MODEL_SHA256 {
+        let bytes = match model.to_bytes() {
+            Ok(b) => b,
+            Err(_) => return ValidateCallbackResult::Invalid(
+                "baked model serialization failed".into()),
+        };
+        let computed = format!("{:x}", Sha256::digest(&bytes));
+        if computed != FROZEN_TOY_MODEL_SHA256 {
+            return ValidateCallbackResult::Invalid(
+                "baked model SHA-256 differs from admitted digest".into());
+        }
+        if self.model_sha256 != computed {
             return ValidateCallbackResult::Invalid(
                 "model artifact hash is not admitted by experimental DNA".into());
         }
@@ -41,7 +58,7 @@ impl MrfSyntheticReceipt {
             return ValidateCallbackResult::Invalid(
                 "inference has model-conformity authority only; no financial admission".into());
         }
-        let expected = match synthetic_forest().infer(&self.input_i64) {
+        let expected = match model.infer(&self.input_i64) {
             Ok(y) => y,
             Err(_) => return ValidateCallbackResult::Invalid(
                 "bad synthetic input shape or deterministic inference error".into()),
@@ -63,17 +80,31 @@ pub enum LinkTypes { SyntheticReceipt }
 
 #[hdk_extern]
 pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
-    if let FlatOp::StoreEntry(
-        OpEntry::CreateEntry { app_entry, .. } |
-        OpEntry::UpdateEntry { app_entry, .. },
-    ) = op.flattened::<EntryTypes, LinkTypes>()?
-    {
-        let result = match app_entry {
-            EntryTypes::SyntheticMrfReceipt(e) => e.validate_entry(),
-        };
-        return Ok(result);
-    }
-    Ok(ValidateCallbackResult::Valid)
+    let op = op.flattened::<EntryTypes, LinkTypes>()?;
+    // Lab policy: synthetic receipts are immutable and never linked. All entry
+    // carrying create ops MUST re-check model bytes and the inference result.
+    // Non-entry infrastructure activity is handled by Holochain as usual.
+    let result = match op {
+        FlatOp::StoreRecord(OpRecord::CreateEntry { app_entry, .. })
+        | FlatOp::StoreEntry(OpEntry::CreateEntry { app_entry, .. }) => {
+            match app_entry {
+                EntryTypes::SyntheticMrfReceipt(e) => e.validate_entry(),
+            }
+        }
+        FlatOp::StoreRecord(OpRecord::UpdateEntry { .. })
+        | FlatOp::StoreRecord(OpRecord::DeleteEntry { .. })
+        | FlatOp::StoreEntry(OpEntry::UpdateEntry { .. })
+        | FlatOp::RegisterUpdate(OpUpdate::Entry { .. })
+        | FlatOp::RegisterDelete(_) => ValidateCallbackResult::Invalid(
+            "TEST MRF receipts are append-only: update/delete forbidden".into()),
+        FlatOp::StoreRecord(OpRecord::CreateLink { .. })
+        | FlatOp::StoreRecord(OpRecord::DeleteLink { .. })
+        | FlatOp::RegisterCreateLink { .. }
+        | FlatOp::RegisterDeleteLink { .. } => ValidateCallbackResult::Invalid(
+            "TEST MRF receipts do not support links".into()),
+        _ => ValidateCallbackResult::Valid,
+    };
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -132,4 +163,30 @@ mod tests {
         let mut e=good();e.authority="certified_regeneration".into();
         invalid(&e,"model-conformity authority");
     }
+    #[test] fn baked_model_digest_matches_expected_bytes() {
+        let bytes=synthetic_forest().to_bytes().unwrap();
+        assert_eq!(bytes.len(),115);
+        assert_eq!(format!("{:x}",Sha256::digest(&bytes)),FROZEN_TOY_MODEL_SHA256);
+    }
+    #[test] fn manipulated_forest_with_unchanged_claimed_digest_rejected() {
+        let mut model=synthetic_forest();
+        model.trees[0].nodes[1]=prometheus_mrf_kernel_lab::Node::Leaf(vec![16,-5]);
+        let e=good();
+        match e.validate_with_model(&model) {
+            ValidateCallbackResult::Invalid(reason) =>
+                assert!(reason.contains("baked model SHA-256"), "{reason}"),
+            other => panic!("tampered model must fail: {other:?}")
+        }
+    }
+    #[test] fn malformed_compiled_model_fail_closed() {
+        let mut model=synthetic_forest();
+        model.trees[0].nodes.clear();
+        let e=good();
+        match e.validate_with_model(&model) {
+            ValidateCallbackResult::Invalid(reason) =>
+                assert!(reason.contains("serialization failed"), "{reason}"),
+            other => panic!("invalid model must fail: {other:?}")
+        }
+    }
+
 }

@@ -15,6 +15,15 @@ async fn setup() -> (SweetConductor, SweetZome) {
     let cell=app.cells()[0].clone();
     (conductor,cell.zome("prometheus_mrf_coordinator_lab"))
 }
+fn require_integrity_reason<E: std::fmt::Debug>(r: Result<ActionHash, E>, marker: &str) {
+    let err = match r {
+        Ok(_) => panic!("expected integrity rejection matching {marker}"),
+        Err(e) => e,
+    };
+    let msg = format!("{err:?}");
+    assert!(msg.contains(marker),
+        "error must originate in integrity callback ({marker}), actual={msg}");
+}
 fn toy() -> serde_json::Value {
     serde_json::json!({
         "subject_id":"TEST-site-01", "evidence_class":"TEST",
@@ -27,26 +36,42 @@ fn toy() -> serde_json::Value {
 async fn synthetic_conductor_valid_and_adversarial_gates() {
     let (conductor,zome)=setup().await;
     // Gate 1: valid TEST synthetic receipt passes.
-    let _:ActionHash=conductor.call(&zome,"create_synthetic_receipt",toy()).await;
+    let created:ActionHash=conductor.call(&zome,"create_synthetic_receipt",toy()).await;
     println!("GATE_1_TEST_VALID=PASS");
     // Gate 2: forged output rejected by the integrity callback.
     let mut x=toy(); x["output_i64"]=serde_json::json!([8,17]);
     let res:Result<ActionHash,_>=conductor.call_fallible(&zome,"create_synthetic_receipt",x).await;
-    assert!(res.is_err(),"GATE_2 forged result must fail");
+    require_integrity_reason(res, "synthetic MRF result mismatch");
     println!("GATE_2_OUTPUT_FORGERY_REJECTED=PASS");
     // Gate 3: REAL persistence is prohibited even for plausible input.
     let mut x=toy(); x["evidence_class"]=serde_json::json!("REAL");
     let res:Result<ActionHash,_>=conductor.call_fallible(&zome,"create_synthetic_receipt",x).await;
-    assert!(res.is_err(),"GATE_3 REAL must fail");
+    require_integrity_reason(res, "REAL_DATA_PERSISTENCE_GATE_CLOSED");
     println!("GATE_3_REAL_REJECTED=PASS");
     // Gate 4: claims under unapproved model digest are rejected.
     let mut x=toy(); x["model_sha256"]=serde_json::json!("bad-digest");
     let res:Result<ActionHash,_>=conductor.call_fallible(&zome,"create_synthetic_receipt",x).await;
-    assert!(res.is_err(),"GATE_4 model hash mismatch must fail");
+    require_integrity_reason(res, "model artifact hash");
     println!("GATE_4_MODEL_SUBSTITUTION_REJECTED=PASS");
     // Gate 5: a model receipt cannot authorize finance/rights.
     let mut x=toy(); x["financial_admission"]=serde_json::json!(true);
     let res:Result<ActionHash,_>=conductor.call_fallible(&zome,"create_synthetic_receipt",x).await;
-    assert!(res.is_err(),"GATE_5 financial authority must fail");
+    require_integrity_reason(res, "model-conformity authority");
     println!("GATE_5_FINANCIAL_PROMOTION_REJECTED=PASS");
+    // Gate 6: even correct TEST data cannot mutate an existing receipt.
+    let res:Result<ActionHash,_>=conductor.call_fallible(
+        &zome,"try_update_synthetic_receipt",created.clone()).await;
+    require_integrity_reason(res, "append-only");
+    println!("GATE_6_MUTATION_REJECTED=PASS");
+    // Gate 7: the audit trail cannot be rewritten by delete.
+    let res:Result<ActionHash,_>=conductor.call_fallible(
+        &zome,"try_delete_synthetic_receipt",created.clone()).await;
+    require_integrity_reason(res, "append-only");
+    println!("GATE_7_DELETION_REJECTED=PASS");
+    // Gate 8: undefined links cannot be smuggled into the LAB DNA.
+    let res:Result<ActionHash,_>=conductor.call_fallible(
+        &zome,"try_link_synthetic_receipt",created).await;
+    require_integrity_reason(res, "do not support links");
+    println!("GATE_8_LINK_REJECTED=PASS");
+
 }
