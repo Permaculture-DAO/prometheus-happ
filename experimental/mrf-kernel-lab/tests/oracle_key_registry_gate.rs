@@ -137,6 +137,10 @@ fn assess(registry:&[KeyRecord], observations:&[Observation], quorum:usize, now:
 #[test] fn evidence_duplication_is_held() {
     let (r,mut o)=fixtures();
     o[2].sample=o[1].sample;
+    // Deliberate, freshly signed duplication must be caught by policy,
+    // not only rejected as invalid signature.
+    let sk=SigningKey::from_bytes(&[33u8;32]);
+    o[2].signature=sk.sign(&frame(&o[2])).to_bytes();
     assert_eq!(assess(&r,&o,3,200),Decision::Hold("duplicated physical-evidence identity"));
 }
 #[test] fn disagreement_not_overridden_by_threshold() {
