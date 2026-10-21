@@ -3,7 +3,7 @@
 //! Model hash is pinned to 115-byte synthetic PMRF-BIN-v1 artifact.
 //! IMPORTANT: This callback proves deterministic model conformity, not truth.
 use hdk::prelude::*;
-use hdi::prelude::{FlatOp, OpEntry};
+use hdi::prelude::{FlatOp, OpEntry, OpRecord, OpUpdate, OpActivity};
 use prometheus_mrf_kernel_lab::synthetic_forest;
 use sha2::{Digest, Sha256};
 
@@ -72,19 +72,67 @@ pub enum EntryTypes {
 #[hdk_link_types]
 pub enum LinkTypes { SyntheticReceipt }
 
+// This TEST-only DNA deliberately implements an append-only public receipt
+// type. No app-defined link semantics, amendments, deletes or private entries.
+// Do not transpose catch-all rejects into a multi-zome production DNA.
+fn immutable_receipt_operation(op: FlatOp<EntryTypes,LinkTypes>) -> ValidateCallbackResult {
+    match op {
+        // Model conformity is checked at BOTH action and entry DHT authorities.
+        FlatOp::StoreRecord(OpRecord::CreateEntry {
+            app_entry: EntryTypes::SyntheticMrfReceipt(entry), ..
+        })
+        | FlatOp::StoreEntry(OpEntry::CreateEntry {
+            app_entry: EntryTypes::SyntheticMrfReceipt(entry), ..
+        }) => entry.validate_entry(),
+
+        // Every mutable path for this TEST-only receipt is forbidden, even
+        // if the replacement entry happens to produce the same prediction.
+        FlatOp::StoreRecord(OpRecord::UpdateEntry { .. })
+        | FlatOp::StoreRecord(OpRecord::DeleteEntry { .. })
+        | FlatOp::StoreEntry(OpEntry::UpdateEntry { .. })
+        | FlatOp::RegisterUpdate(OpUpdate::Entry { .. })
+        | FlatOp::RegisterUpdate(OpUpdate::PrivateEntry { .. })
+        | FlatOp::RegisterDelete(_) => {
+            ValidateCallbackResult::Invalid("immutable TEST MRF receipt".into())
+        }
+
+        // The source-chain activity op has no entry body, therefore it
+        // cannot re-check model inference. It can still veto updates/deletes.
+        FlatOp::RegisterAgentActivity(OpActivity::UpdateEntry {
+            app_entry_type: Some(UnitEntryTypes::SyntheticMrfReceipt), ..
+        })
+        | FlatOp::RegisterAgentActivity(OpActivity::UpdatePrivateEntry {
+            app_entry_type: Some(UnitEntryTypes::SyntheticMrfReceipt), ..
+        })
+        | FlatOp::RegisterAgentActivity(OpActivity::DeleteEntry { .. }) => {
+            ValidateCallbackResult::Invalid("synthetic receipts cannot be edited or deleted".into())
+        }
+
+        FlatOp::StoreRecord(OpRecord::CreatePrivateEntry { .. })
+        | FlatOp::StoreRecord(OpRecord::UpdatePrivateEntry { .. }) => {
+            ValidateCallbackResult::Invalid("no private MRF entries".into())
+        }
+
+        // This experimental type has no authorized links. Reject both
+        // action and link authorities rather than leaving an unvalidated path.
+        FlatOp::StoreRecord(OpRecord::CreateLink { .. })
+        | FlatOp::StoreRecord(OpRecord::DeleteLink { .. })
+        | FlatOp::RegisterCreateLink { .. }
+        | FlatOp::RegisterDeleteLink { .. }
+        | FlatOp::RegisterAgentActivity(OpActivity::CreateLink { .. })
+        | FlatOp::RegisterAgentActivity(OpActivity::DeleteLink { .. }) => {
+            ValidateCallbackResult::Invalid("synthetic receipt links prohibited".into())
+        }
+
+        // Holochain's normal DNA, agent-registration and init activities
+        // are not ecological evidence and must not be blocked.
+        _ => ValidateCallbackResult::Valid,
+    }
+}
+
 #[hdk_extern]
 pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
-    if let FlatOp::StoreEntry(
-        OpEntry::CreateEntry { app_entry, .. } |
-        OpEntry::UpdateEntry { app_entry, .. },
-    ) = op.flattened::<EntryTypes, LinkTypes>()?
-    {
-        let result = match app_entry {
-            EntryTypes::SyntheticMrfReceipt(e) => e.validate_entry(),
-        };
-        return Ok(result);
-    }
-    Ok(ValidateCallbackResult::Valid)
+    Ok(immutable_receipt_operation(op.flattened::<EntryTypes, LinkTypes>()?))
 }
 
 #[cfg(test)]
