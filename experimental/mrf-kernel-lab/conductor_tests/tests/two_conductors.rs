@@ -3,6 +3,7 @@
 use holo_hash::ActionHash;
 use holochain::sweettest::*;
 use std::path::PathBuf;
+use std::time::Duration;
 
 fn receipt() -> serde_json::Value {
     serde_json::json!({
@@ -28,11 +29,25 @@ async fn two_independent_conductors_peer_info_and_local_validation() {
     assert!(SweetConductor::exchange_peer_info([&a,&b]).await,
         "two independently initialized conductor peer records must be exchangeable");
     println!("PEER_INFO_EXCHANGE=PASS");
-    let _:ActionHash=a.call(&zome_a,"create_synthetic_receipt",receipt()).await;
-    let _:ActionHash=b.call(&zome_b,"create_synthetic_receipt",receipt()).await;
+    println!("STAGE_A_CREATE_BEGIN");
+    let _:ActionHash=tokio::time::timeout(
+        Duration::from_secs(75),
+        a.call(&zome_a,"create_synthetic_receipt",receipt()),
+    ).await.expect("STAGE_A_CREATE_TIMEOUT");
+    println!("STAGE_A_CREATE_PASS");
+    println!("STAGE_B_CREATE_BEGIN");
+    let _:ActionHash=tokio::time::timeout(
+        Duration::from_secs(75),
+        b.call(&zome_b,"create_synthetic_receipt",receipt()),
+    ).await.expect("STAGE_B_CREATE_TIMEOUT");
+    println!("STAGE_B_CREATE_PASS");
     println!("TWO_CONDUCTORS_LOCAL_TEST_CONFORMITY=PASS");
     let mut bad=receipt();bad["evidence_class"]=serde_json::json!("REAL");
-    let denied:Result<ActionHash,_>=b.call_fallible(&zome_b,"create_synthetic_receipt",bad).await;
+    println!("STAGE_B_REAL_REJECTION_BEGIN");
+    let denied:Result<ActionHash,_>=tokio::time::timeout(
+        Duration::from_secs(45),
+        b.call_fallible(&zome_b,"create_synthetic_receipt",bad),
+    ).await.expect("STAGE_B_REAL_REJECTION_TIMEOUT");
     assert!(denied.is_err(),"independent conductor must reject REAL");
     println!("SECOND_CONDUCTOR_REAL_REJECTION=PASS");
 }
