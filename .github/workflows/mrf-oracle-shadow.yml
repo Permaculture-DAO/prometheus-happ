@@ -1,0 +1,24 @@
+name: mrf-oracle-shadow
+on:
+  push:
+    paths:
+      - "experimental/mrf-kernel-lab/oracle_policy_lab/**"
+      - ".github/workflows/mrf-oracle-shadow.yml"
+  pull_request:
+    paths:
+      - "experimental/mrf-kernel-lab/oracle_policy_lab/**"
+      - ".github/workflows/mrf-oracle-shadow.yml"
+permissions:
+  contents: read
+jobs:
+  oracle-shadow-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: experimental/mrf-kernel-lab/oracle_policy_lab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Ed25519 oracle anti-collusion and ecological-sentinel fixtures
+        run: cargo test --all-targets

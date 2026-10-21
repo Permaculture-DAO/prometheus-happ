@@ -1,0 +1,11 @@
+[package]
+name = "prometheus-mrf-oracle-shadow"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+ed25519-dalek = "=2.2.0"
+sha2 = "=0.10.9"
