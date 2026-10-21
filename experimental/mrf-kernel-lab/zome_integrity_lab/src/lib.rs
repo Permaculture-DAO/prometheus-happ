@@ -5,6 +5,7 @@
 use hdk::prelude::*;
 use hdi::prelude::{FlatOp, OpEntry};
 use prometheus_mrf_kernel_lab::synthetic_forest;
+use sha2::{Digest, Sha256};
 
 pub const FROZEN_TOY_MODEL_SHA256: &str =
     "e074715a26129c8f00e828774eadc71ef33f94a620c0dcd0e00216b6156bda5f";
@@ -33,7 +34,17 @@ impl MrfSyntheticReceipt {
             return ValidateCallbackResult::Invalid(
                 "synthetic receipt requires TEST-namespaced subject".into());
         }
-        if self.model_sha256 != FROZEN_TOY_MODEL_SHA256 {
+        // Bind the admitted digest to the exact canonical bytes actually used
+        // by the deterministic interpreter; do not trust receipt metadata alone.
+        let model_bytes = match synthetic_forest().to_bytes() {
+            Ok(v) => v,
+            Err(_) => return ValidateCallbackResult::Invalid("unserializable model".into()),
+        };
+        let actual_digest = format!("{:x}", Sha256::digest(&model_bytes));
+        if actual_digest != FROZEN_TOY_MODEL_SHA256 {
+            return ValidateCallbackResult::Invalid("embedded model hash mismatch".into());
+        }
+        if self.model_sha256 != actual_digest {
             return ValidateCallbackResult::Invalid(
                 "model artifact hash is not admitted by experimental DNA".into());
         }
@@ -111,6 +122,11 @@ mod tests {
     #[test] fn namespace_required() {
         let mut e=good();e.subject_id="site-01".into();
         invalid(&e,"TEST-namespaced");
+    }
+    #[test] fn actual_baked_model_digest_test() {
+        let bytes=synthetic_forest().to_bytes().unwrap();
+        assert_eq!(bytes.len(),115);
+        assert_eq!(format!("{:x}", Sha256::digest(&bytes)), FROZEN_TOY_MODEL_SHA256);
     }
     #[test] fn mismatched_model_rejected() {
         let mut e=good();e.model_sha256="bad".into();
