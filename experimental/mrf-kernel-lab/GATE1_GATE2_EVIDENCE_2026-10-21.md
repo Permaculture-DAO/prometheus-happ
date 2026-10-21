@@ -17,3 +17,25 @@ Authority: TEST_ONLY / SHADOW / noncanonical. This is a *subordinate experimenta
 - Independent DNA rebuild and audit/signed governance review.
 
 No production/REAL/code path/Canon/PRU/RAP/TRBK/financial authority.
+
+
+## Final local follow-on results — 2026-10-21
+
+**PASS — exact NEW SHA-bound DNA live conductor** (not predecessor):
+```
+b1df1cfe3a6825d7e2af61ca5772b7cb762251d53f23e62f0f7bf9a6b05fd793  prometheus_mrf_synthetic_lab.dna
+running 1 test
+GATE_1_TEST_VALID=PASS
+GATE_2_OUTPUT_FORGERY_REJECTED=PASS
+GATE_3_REAL_REJECTED=PASS
+GATE_4_MODEL_SUBSTITUTION_REJECTED=PASS
+GATE_5_FINANCIAL_PROMOTION_REJECTED=PASS
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 125.10s
+```
+Execution: an isolated WSL `/home/giova/prometheus-mrf-gate1-20261021` laboratory with a copy of the new signed-*neither*-release TEST DNA, copied frozen conductor harness and cached build dependencies. No production conductor accessed; test wall runtime including build ≈212.56s. The tests assert five behavior scenarios in one in-process conductor, **not five independently owned peers**.
+
+**PASS — Ed25519 synthetic cryptographic unit tests (4/4)** in `tests/oracle_ed25519_synthetic.rs`: valid signature, tampered value/sequence/expiry/other public key rejected, length-delimited framing prevents ambiguity, exact-repeat in-memory replay guard, and expiry remains a separate policy condition. Keys are synthetic fixed-byte test keys; no network key registry, no real independent operators, no witnessed measurements, no real custody or revocation verification. Do **not** infer scientific corroboration or production readiness.
+
+**PASS — oracle independence policy checks (8/8)**, synthetic only, distinct from Ed25519. True source/operator independence is not demonstrated by a text label.
+
+**Current status:** Gate 1 *bounded in-process conformity and actual-model hash binding* PASS. Gate 1 *all Holochain op variants, independent multi-peer tests and full signed DNA reproducibility* OPEN. Gate 2 *synthetic signature primitive and policy checks* PASS, full trusted oracle validation/ecological anti-gaming OPEN. REAL remains CLOSED.
