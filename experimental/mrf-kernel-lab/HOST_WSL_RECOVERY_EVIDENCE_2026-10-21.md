@@ -39,3 +39,12 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 The containing Windows process exited 0 (about 100.17s including Ubuntu startup). This is **real, completed two-conductor peer-info discovery PASS**, superseding the earlier incomplete and database-failed discovery tests *only for this narrow scenario*.
 
 The host C free capacity measured ~4.239 GiB immediately after the run, D ~0.631 GiB; both WSL distributions then reported Stopped. The more expensive two-conductor receipt creation/independent validation case and **remote DHT record fetch** are separate gates, never implied by the discovery PASS.
+
+
+## Two-conductor application trial after recovery — timeout, not PASS
+
+After the independently completed `peer_info_smoke` PASS, the previously compiled combined `two_conductors-6ba934d4c9932ce2` binary was re-executed on recovered Ubuntu with a **230-second runtime bound** and a Windows preflight requiring >=4 GiB free on C. It printed `PEER_INFO_EXCHANGE=PASS` but never completed both independent receipt operations or the REAL rejection. The containing Windows process returned **exit 1 at about 242.09s** (includes Ubuntu startup); classify this as **TIMEOUT/INCOMPLETE**.
+
+A post-run disk check showed **C: ~4.235 GiB free, D: ~0.631 GiB free**, so no new disk exhaustion was observed in this run. That does **not** diagnose the precise cause of stalled `conductor.call` (network, DHT dependencies, internal scheduler and test harness are still candidates). No multi-agent MRF receipt PASS or remote DHT validation may be claimed.
+
+Next change should add pre/post instrumentation and **independent strict timeouts for each coordinator call**, with the exact stage printed on failure; do not spin indefinitely or conflate peer-info discovery with DHT convergence.
