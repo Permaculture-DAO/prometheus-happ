@@ -18,6 +18,18 @@ env:
   G5_EXPECTED_DNA_SHA256: 739d1fb6ffb1f61de14c187a27f926366ba9ed88fdd2057b72503c871ebc779f
   G5_EXPECTED_UPSTREAM_LOCK_SHA256: 294832bbea633e68b49fb2c97b841da214118f7672f78bd314600d1002c64464
 jobs:
+  g53-manifest-contract-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate G5.3 fail-closed TEST manifest contract (no host access)
+        run: |
+          set -euo pipefail
+          cd experimental/mrf-kernel-lab/g53_contract
+          python3 -m unittest -v test_g53_preflight.py
+          echo 'G53_SCHEMA_NEGATIVE_TESTS=PASS'
+
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
