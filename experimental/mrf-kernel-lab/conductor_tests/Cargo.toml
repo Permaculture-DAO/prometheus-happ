@@ -7,6 +7,7 @@ publish = false
 [dev-dependencies]
 holochain = { version = "=0.6.1", features = ["sweettest"] }
 holo_hash = "=0.6.1"
+prometheus_mrf_integrity_lab = { path = "../zome_integrity_lab" }
 tokio = { version = "1", features = ["full"] }
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
