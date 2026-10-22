@@ -189,6 +189,19 @@ jobs:
             [[ "$count" == 1 ]] || { echo "::error::Missing or duplicate stage timing $metric"; exit 1; }
             printf '%s\n' "$values" | tee -a "$metrics"
           done
+          # Five successful repeated same-runner reads per direction, never synthetic SLO evidence.
+          for sample in 1 2 3 4 5; do
+            for direction in A_TO_B B_TO_A; do
+              metric="G7_CI_HOST_WARM_${direction}_${sample}_MS"
+              values="$(grep -oE "$metric=[0-9]+" "$RUNNER_TEMP/g5-test-stage-trace.log" || true)"
+              count="$(printf '%s\n' "$values" | grep -c . || true)"
+              [[ "$count" == 1 ]] || { echo "::error::Missing/duplicate warm sample $metric"; exit 1; }
+              printf '%s\n' "$values" | tee -a "$metrics"
+            done
+          done
+          grep -Fq "G7_CI_HOST_WARM_SAMPLE_COUNT=10" "$RUNNER_TEMP/g5-test-stage-trace.log" \
+            || { echo "::error::Repeated read count invariant failed"; exit 1; }
+          echo "G7_CI_HOST_WARM_READ_SAMPLE_EXTRACTION=PASS"
           rss="$(awk -F= '$1=="G7_MAX_SINGLE_PROCESS_RSS_KIB" {print $2}' "$metrics")"
           elapsed="$(awk -F= '$1=="G7_ELAPSED_SECONDS" {print $2}' "$metrics")"
           [[ "$rss" =~ ^[0-9]+$ ]] && (( rss > 0 )) || { echo "::error::Invalid RSS measurement"; exit 1; }

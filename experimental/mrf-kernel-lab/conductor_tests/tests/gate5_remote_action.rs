@@ -170,6 +170,51 @@ async fn test_gate5_remote_get_by_action_hash() {
     assert!(absent.is_none(),"G5_UNKNOWN_HASH_RETURNED_RECORD");
     println!("G5_UNKNOWN_ACTION_HASH_REJECTED=PASS");
 
+    // G7.2: five successful repeated reads per direction AFTER propagation.
+    // Each sample checks ActionHash, author and TEST payload invariants.
+    // Warm reads may be served by local caches; these are NOT peer-to-peer RTTs.
+    for sample in 1..=5 {
+        let started = Instant::now();
+        let found: Option<Record> = tokio::time::timeout(
+            Duration::from_secs(75),
+            batch[1].call(&zb, "get_synthetic_receipt_by_action", ah.clone()),
+        ).await.expect("G7_REPEAT_A_TO_B_TIMEOUT");
+        let found = found.expect("G7_REPEAT_A_TO_B_EMPTY");
+        assert_eq!(found.action_address(), &ah, "G7_REPEAT_A_TO_B_ACTION_MISMATCH");
+        assert_eq!(found.action().author(), alice.agent_pubkey(), "G7_REPEAT_A_TO_B_AUTHOR_MISMATCH");
+        let entry: MrfSyntheticReceipt = found.entry().to_app_option()
+            .expect("G7_REPEAT_A_TO_B_DECODE_FAILED")
+            .expect("G7_REPEAT_A_TO_B_ENTRY_MISSING");
+        assert_eq!(entry.subject_id, "TEST-gate5-remote-a");
+        assert_eq!(entry.evidence_class, "TEST");
+        assert_eq!(entry.input_i64, vec![250, 90]);
+        assert_eq!(entry.output_i64, vec![8, -2]);
+        assert_eq!(entry.authority, "model_conformity_only");
+        assert!(!entry.financial_admission);
+        println!("G7_CI_HOST_WARM_A_TO_B_{}_MS={}", sample, started.elapsed().as_millis());
+    }
+    for sample in 1..=5 {
+        let started = Instant::now();
+        let found: Option<Record> = tokio::time::timeout(
+            Duration::from_secs(75),
+            batch[0].call(&za, "get_synthetic_receipt_by_action", bh.clone()),
+        ).await.expect("G7_REPEAT_B_TO_A_TIMEOUT");
+        let found = found.expect("G7_REPEAT_B_TO_A_EMPTY");
+        assert_eq!(found.action_address(), &bh, "G7_REPEAT_B_TO_A_ACTION_MISMATCH");
+        assert_eq!(found.action().author(), bob.agent_pubkey(), "G7_REPEAT_B_TO_A_AUTHOR_MISMATCH");
+        let entry: MrfSyntheticReceipt = found.entry().to_app_option()
+            .expect("G7_REPEAT_B_TO_A_DECODE_FAILED")
+            .expect("G7_REPEAT_B_TO_A_ENTRY_MISSING");
+        assert_eq!(entry.subject_id, "TEST-gate5-remote-b");
+        assert_eq!(entry.evidence_class, "TEST");
+        assert_eq!(entry.input_i64, vec![320, 120]);
+        assert_eq!(entry.output_i64, vec![3, 0]);
+        assert_eq!(entry.authority, "model_conformity_only");
+        assert!(!entry.financial_admission);
+        println!("G7_CI_HOST_WARM_B_TO_A_{}_MS={}", sample, started.elapsed().as_millis());
+    }
+    println!("G7_CI_HOST_WARM_SAMPLE_COUNT=10");
+
     // Fail-closed adversarial preflight on the receiving/second conductor.
     // Check the *reported validator reason*, not merely is_err(), which may
     // be caused by a transport failure, timeout or unrelated Wasm panic.
