@@ -48,7 +48,10 @@ pub fn get_synthetic_receipt_for_audit(
             "MRF_TEST_ACTION_HASH_MISMATCH".into(),
         )));
     }
-    let Some(receipt) = record.entry().to_app_option::<MrfSyntheticReceipt>()? else {
+    let Some(receipt) = record.entry().to_app_option::<MrfSyntheticReceipt>()
+        .map_err(|_| wasm_error!(WasmErrorInner::Guest(
+            "MRF_TEST_RECEIPT_DECODE_FAILURE".into(),
+        )))? else {
         return Err(wasm_error!(WasmErrorInner::Guest(
             "MRF_TEST_UNEXPECTED_ENTRY_TYPE".into(),
         )));
