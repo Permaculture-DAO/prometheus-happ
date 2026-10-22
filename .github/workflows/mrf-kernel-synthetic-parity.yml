@@ -48,3 +48,21 @@ jobs:
         run: cargo test
       - name: Experimental HDI WASM compile
         run: cargo build --release --target wasm32-unknown-unknown
+
+  coordinator-wasm-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: experimental/mrf-kernel-lab/zome_coordinator_lab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Build isolated TEST-only coordinator WASM
+        run: cargo build --release --target wasm32-unknown-unknown
+      - name: Verify output and record digest
+        run: |
+          test -s target/wasm32-unknown-unknown/release/prometheus_mrf_coordinator_lab.wasm
+          sha256sum target/wasm32-unknown-unknown/release/prometheus_mrf_coordinator_lab.wasm
