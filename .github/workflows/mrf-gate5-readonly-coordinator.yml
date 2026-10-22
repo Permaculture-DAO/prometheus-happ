@@ -1,0 +1,34 @@
+name: mrf-gate5-readonly-coordinator
+on:
+  push:
+    paths:
+      - "experimental/mrf-kernel-lab/zome_coordinator_lab/**"
+      - "experimental/mrf-kernel-lab/zome_integrity_lab/**"
+      - ".github/workflows/mrf-gate5-readonly-coordinator.yml"
+  pull_request:
+    paths:
+      - "experimental/mrf-kernel-lab/zome_coordinator_lab/**"
+      - "experimental/mrf-kernel-lab/zome_integrity_lab/**"
+      - ".github/workflows/mrf-gate5-readonly-coordinator.yml"
+permissions:
+  contents: read
+jobs:
+  gate5-coordinator-wasm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: experimental/mrf-kernel-lab/zome_coordinator_lab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Test-only coordinator type check
+        run: cargo check
+      - name: TEST-only network GetOptions read-only WASM build
+        run: cargo build --release --target wasm32-unknown-unknown
+      - name: Print unsigned experimental binary fingerprint
+        run: |
+          sha256sum target/wasm32-unknown-unknown/release/prometheus_mrf_coordinator_lab.wasm
+          wc -c target/wasm32-unknown-unknown/release/prometheus_mrf_coordinator_lab.wasm
