@@ -63,6 +63,17 @@ def validate_pair(policy, a, b):
             "G53_PHYSICAL_INDEPENDENCE=NOT_PROVEN\n"
             "G53_DHT_REPLICATION=NOT_TESTED\n"
             "G53_GO_NO_GO=HOLD_PENDING_INDEPENDENT_REVIEW")
+def reject_duplicate_json_keys(pairs):
+    """Reject ambiguously repeated names at ANY nesting depth."""
+    obj = {}
+    for name, value in pairs:
+        if name in obj:
+            raise PreflightRejected("INPUT:DUPLICATE_JSON_KEY:" + name)
+        obj[name] = value
+    return obj
+
+def reject_non_finite(value):
+    raise PreflightRejected("INPUT:NONFINITE_NUMBER:" + value)
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--policy", type=Path, required=True)
@@ -72,7 +83,9 @@ def main():
     try:
         def read(path):
             need(path.is_file() and path.stat().st_size <= 32768, "INPUT:MISSING_OR_TOO_LARGE")
-            return json.loads(path.read_text(encoding="utf-8"))
+            return json.loads(path.read_text(encoding="utf-8"),
+                              object_pairs_hook=reject_duplicate_json_keys,
+                              parse_constant=reject_non_finite)
         print(validate_pair(read(args.policy), read(args.host_a), read(args.host_b)))
     except (PreflightRejected, OSError, ValueError, UnicodeError) as exc:
         print("G53_MANIFEST_PAIR_SCHEMA=FAIL:" + str(exc), file=sys.stderr)

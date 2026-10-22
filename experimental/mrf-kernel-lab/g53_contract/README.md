@@ -23,3 +23,6 @@ Independent reviewers must authenticate the two actual host evidence sources, re
 G5.4 additionally requires a controlled partition, bounded UNKNOWN/FAIL attribution, rejoin and verified convergence. A pass here is never ecological certification, capital authority, token rights or permission to open REAL_DATA_PERSISTENCE_GATE_CLOSED. Do not boot production WSL, merge Canon or replace the signed production DNA as part of these checks.
 
 The included 15 unit tests use **only fabricated TEST host data**, proving negative control behavior, not host attestations.
+## JSON file-level negative controls
+
+The CI executes both in-memory schema tests and **the actual command-line entrypoint** on fabricated files. JSON objects containing duplicate member names at any level or non-finite numbers are rejected explicitly. Missing, oversized (>32 KiB), malformed, inconsistent and production/REAL-open files return exit code 2. A structurally valid *fabricated* pair returns process status 0 for **schema validation only**, while still printing `G53_GO_NO_GO=HOLD_PENDING_INDEPENDENT_REVIEW` and `G53_PHYSICAL_INDEPENDENCE=NOT_PROVEN`; do **not** equate an exit code of 0 with permission to run a physical experiment. External reviewer sign-off and host observation remain mandatory.
