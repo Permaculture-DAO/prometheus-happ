@@ -41,6 +41,8 @@ jobs:
           echo 'G53_TEST_SIGNED_SEQUENTIAL_CHECKPOINT_WITNESS=PASS'
           python3 -m unittest -v test_g53_checkpoint_quorum.py
           echo 'G53_TEST_FULL_QUORUM_CHECKPOINT_CHAIN=PASS'
+          python3 -m unittest -v test_g53_root_enrollment.py
+          echo 'G53_TEST_ROOT_ENROLLMENT_AND_REVOCATION=PASS'
 
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
