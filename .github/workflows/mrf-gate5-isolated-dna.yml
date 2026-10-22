@@ -1,0 +1,82 @@
+name: mrf-gate5-isolated-dna
+on:
+  push:
+    paths:
+      - "experimental/mrf-kernel-lab/**"
+      - ".github/workflows/mrf-gate5-isolated-dna.yml"
+  pull_request:
+    paths:
+      - "experimental/mrf-kernel-lab/**"
+      - ".github/workflows/mrf-gate5-isolated-dna.yml"
+permissions:
+  contents: read
+jobs:
+  pack-isolated-test-dna:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+      HC_RELEASE: holochain-0.6.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          targets: wasm32-unknown-unknown
+      - name: Compile TEST-only integrity and coordinator WASM
+        run: |
+          set -euo pipefail
+          cargo build --manifest-path experimental/mrf-kernel-lab/zome_integrity_lab/Cargo.toml --locked --release --target wasm32-unknown-unknown
+          cargo build --manifest-path experimental/mrf-kernel-lab/zome_coordinator_lab/Cargo.toml --locked --release --target wasm32-unknown-unknown
+      - name: Download and check official Holochain CLI v0.6.1
+        run: |
+          set -euo pipefail
+          release_json="$RUNNER_TEMP/holochain_061_release.json"
+          gh api "repos/holochain/holochain/releases/tags/$HC_RELEASE" > "$release_json"
+          jq -r '[.assets[].name | select(startswith("hc-x86_64-unknown-linux-gnu"))] | .[]' "$release_json"
+          asset="$(jq -r '[.assets[].name | select(. == "hc-x86_64-unknown-linux-gnu" or . == "hc-x86_64-unknown-linux-gnu.gz" or . == "hc-x86_64-unknown-linux-gnu.tar.gz")] | if length == 1 then .[0] else empty end' "$release_json")"
+          test -n "$asset" || { echo "::error::Could not unambiguously select official hc Linux binary"; exit 1; }
+          expected="$(jq -r --arg a "$asset" '.assets[] | select(.name == $a) | .digest // empty' "$release_json")"
+          [[ "$expected" == sha256:* ]] || { echo "::error::Missing upstream SHA256 digest; fail closed"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/mrf-hc"
+          gh release download "$HC_RELEASE" --repo holochain/holochain --pattern "$asset" --dir "$RUNNER_TEMP/mrf-hc"
+          got="sha256:$(sha256sum "$RUNNER_TEMP/mrf-hc/$asset" | cut -d' ' -f1)"
+          test "$got" = "$expected" || { echo "::error::Upstream hc artifact hash mismatch"; exit 1; }
+          case "$asset" in
+            *.tar.gz) tar -xzf "$RUNNER_TEMP/mrf-hc/$asset" -C "$RUNNER_TEMP/mrf-hc" ;;
+            *.gz) gzip -dc "$RUNNER_TEMP/mrf-hc/$asset" > "$RUNNER_TEMP/mrf-hc/hc" ;;
+            *) cp "$RUNNER_TEMP/mrf-hc/$asset" "$RUNNER_TEMP/mrf-hc/hc" ;;
+          esac
+          test -f "$RUNNER_TEMP/mrf-hc/hc" || { echo "::error::hc executable missing"; exit 1; }
+          chmod +x "$RUNNER_TEMP/mrf-hc/hc"
+          "$RUNNER_TEMP/mrf-hc/hc" --version | tee "$RUNNER_TEMP/hc_version.txt"
+          grep -q '0.6.1' "$RUNNER_TEMP/hc_version.txt" || { echo "::error::CLI version mismatch"; exit 1; }
+          echo "$RUNNER_TEMP/mrf-hc" >> "$GITHUB_PATH"
+      - name: Pack NEW isolated laboratory DNA and checksum
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mrf-g5-isolated-dna"
+          mkdir -p "$root/wasm"
+          cp experimental/mrf-kernel-lab/experimental_dna/dna.yaml "$root/dna.yaml"
+          cp experimental/mrf-kernel-lab/zome_integrity_lab/target/wasm32-unknown-unknown/release/prometheus_mrf_integrity_lab.wasm "$root/wasm/"
+          cp experimental/mrf-kernel-lab/zome_coordinator_lab/target/wasm32-unknown-unknown/release/prometheus_mrf_coordinator_lab.wasm "$root/wasm/"
+          hc dna pack "$root"
+          test -s "$root/prometheus_mrf_synthetic_lab.dna"
+          (cd "$root" && sha256sum wasm/*.wasm prometheus_mrf_synthetic_lab.dna > SHA256SUMS.txt)
+          cp "$RUNNER_TEMP/hc_version.txt" "$root/hc_version.txt"
+          cp experimental/mrf-kernel-lab/zome_integrity_lab/Cargo.lock "$root/integrity_Cargo.lock"
+          cp experimental/mrf-kernel-lab/zome_coordinator_lab/Cargo.lock "$root/coordinator_Cargo.lock"
+          cat "$root/SHA256SUMS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mrf-gate5-new-dna-TEST-only
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/mrf-g5-isolated-dna/dna.yaml
+            ${{ runner.temp }}/mrf-g5-isolated-dna/prometheus_mrf_synthetic_lab.dna
+            ${{ runner.temp }}/mrf-g5-isolated-dna/SHA256SUMS.txt
+            ${{ runner.temp }}/mrf-g5-isolated-dna/hc_version.txt
+            ${{ runner.temp }}/mrf-g5-isolated-dna/integrity_Cargo.lock
+            ${{ runner.temp }}/mrf-g5-isolated-dna/coordinator_Cargo.lock
+            ${{ runner.temp }}/mrf-g5-isolated-dna/wasm/*.wasm
