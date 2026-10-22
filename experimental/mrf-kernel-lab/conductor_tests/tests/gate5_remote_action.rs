@@ -147,6 +147,47 @@ async fn test_gate5_remote_get_by_action_hash() {
     assert!(!b_typed.financial_admission, "G5_REVERSE_FINANCIAL_ADMISSION_BYPASS");
     println!("G5_BIDIRECTIONAL_TYPED_REPLICATION=PASS");
 
+    // Fail-closed adversarial preflight on the receiving/second conductor.
+    // Check the *reported validator reason*, not merely is_err(), which may
+    // be caused by a transport failure, timeout or unrelated Wasm panic.
+    for (field, tampered, required_reason) in [
+        ("output_i64", serde_json::json!([8,17]), "synthetic MRF result mismatch"),
+        ("evidence_class", serde_json::json!("REAL"), "REAL_DATA_PERSISTENCE_GATE_CLOSED"),
+        ("financial_admission", serde_json::json!(true), "model-conformity authority"),
+    ] {
+        let mut bad = test_receipt();
+        bad[field] = tampered;
+        let rejected: Result<ActionHash, _> = tokio::time::timeout(
+            Duration::from_secs(45),
+            batch[1].call_fallible(&zb, "create_synthetic_receipt", bad),
+        ).await.expect("G5_ADVERSARIAL_CALL_TIMEOUT");
+        let err = rejected.expect_err("G5_INVALID_RECEIPT_WAS_ACCEPTED");
+        let trace = format!("{err:?}");
+        assert!(
+            trace.contains(required_reason),
+            "G5_REJECTION_PROVENANCE_MISMATCH: field={field}, actual={trace}"
+        );
+        println!("G5_ADVERSARIAL_{field}_REJECTED_WITH_VALIDATOR_REASON=PASS");
+    }
+
+    // A's original valid immutable receipt must remain addressable by B
+    // after B has attempted the three tampered synthetic writes.
+    let after: Option<Record> = tokio::time::timeout(
+        Duration::from_secs(75),
+        batch[1].call(&zb, "get_synthetic_receipt_by_action", ah.clone()),
+    ).await.expect("G5_POST_ATTACK_READ_TIMEOUT");
+    let after = after.expect("G5_POST_ATTACK_VALID_RECORD_UNAVAILABLE");
+    assert_eq!(after.action_address(), &ah, "G5_POST_ATTACK_HASH_MISMATCH");
+    let after_typed: MrfSyntheticReceipt = after.entry()
+        .to_app_option()
+        .expect("G5_POST_ATTACK_DECODE_FAILED")
+        .expect("G5_POST_ATTACK_ENTRY_MISSING");
+    assert_eq!(after_typed.input_i64, vec![250,90]);
+    assert_eq!(after_typed.output_i64, vec![8,-2]);
+    assert_eq!(after_typed.evidence_class, "TEST");
+    assert!(!after_typed.financial_admission);
+    println!("G5_POST_ATTACK_VALID_RECORD_INTEGRITY=PASS");
+
     // Both directions use one local CI runner. These assertions do NOT prove
     // cross-host resilience, partitions/rejoin, scientific truth or oracle quorum.
     // A remote get is not an authority-level validation or ecological audit.
