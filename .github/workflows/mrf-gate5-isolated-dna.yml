@@ -175,12 +175,20 @@ jobs:
           test_exit=0
           /usr/bin/time -f 'G7_ELAPSED_SECONDS=%e\nG7_MAX_SINGLE_PROCESS_RSS_KIB=%M\nG7_USER_CPU_SECONDS=%U\nG7_SYSTEM_CPU_SECONDS=%S' \
             -o "$RUNNER_TEMP/g5-test-rusage.env" \
-            cargo test --manifest-path "$manifest" --test gate5_remote_action -- --nocapture --test-threads=1 \
+            cargo test --manifest-path "$manifest" --test gate5_remote_action -- --nocapture --test-threads=1 2>&1 \
+            | tee "$RUNNER_TEMP/g5-test-stage-trace.log" \
             || test_exit=$?
           test -s "$RUNNER_TEMP/g5-test-rusage.env" || { echo "::error::Missing test resource measurements"; exit 1; }
           cat "$RUNNER_TEMP/g5-test-rusage.env" | tee -a "$metrics"
           printf 'G7_TEST_EXIT_CODE=%s\n' "$test_exit" | tee -a "$metrics"
           test "$test_exit" -eq 0 || { echo "::error::MRF Gate-5 test failed; resource sample is NOT a PASS"; exit "$test_exit"; }
+          # Monotonic per-direction CI timings include retry/payload verification, not just transport latency.
+          for metric in G7_CI_HOST_READ_A_TO_B_MS G7_CI_HOST_READ_B_TO_A_MS G7_CI_HOST_TEST_WALL_MS; do
+            values="$(grep -oE "$metric=[0-9]+" "$RUNNER_TEMP/g5-test-stage-trace.log" || true)"
+            count="$(printf '%s\n' "$values" | grep -c . || true)"
+            [[ "$count" == 1 ]] || { echo "::error::Missing or duplicate stage timing $metric"; exit 1; }
+            printf '%s\n' "$values" | tee -a "$metrics"
+          done
           rss="$(awk -F= '$1=="G7_MAX_SINGLE_PROCESS_RSS_KIB" {print $2}' "$metrics")"
           elapsed="$(awk -F= '$1=="G7_ELAPSED_SECONDS" {print $2}' "$metrics")"
           [[ "$rss" =~ ^[0-9]+$ ]] && (( rss > 0 )) || { echo "::error::Invalid RSS measurement"; exit 1; }

@@ -5,7 +5,7 @@ use holochain::prelude::Record;
 use prometheus_mrf_integrity_lab::MrfSyntheticReceipt;
 use holochain::sweettest::*;
 use std::path::PathBuf;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 fn test_receipt() -> serde_json::Value {
     serde_json::json!({
@@ -21,6 +21,7 @@ fn test_receipt() -> serde_json::Value {
 
 #[tokio::test(flavor="multi_thread")]
 async fn test_gate5_remote_get_by_action_hash() {
+    let suite_started = Instant::now();
     let dna_path=PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..").join("experimental_dna")
         .join("prometheus_mrf_synthetic_lab.dna");
@@ -63,6 +64,7 @@ async fn test_gate5_remote_get_by_action_hash() {
      .expect("G5_DHT_OPS_NOT_INTEGRATED");
     println!("G5_DHT_CONSISTENCY=PASS");
 
+    let forward_read_started = Instant::now();
     let mut recovered:Option<Record>=None;
     for attempt in 0..5 {
         println!("G5_REMOTE_B_ATTEMPT={}",attempt+1);
@@ -97,6 +99,7 @@ async fn test_gate5_remote_get_by_action_hash() {
     assert_eq!(typed.authority, "model_conformity_only", "G5_AUTHORITY_ESCALATION");
     assert!(!typed.financial_admission, "G5_FINANCIAL_ADMISSION_BYPASS");
     println!("G5_REMOTE_TYPED_PAYLOAD_MATCH=PASS");
+    println!("G7_CI_HOST_READ_A_TO_B_MS={}", forward_read_started.elapsed().as_millis());
 
     // Gate 5.2: reverse direction, same immutable TEST DNA and two conductors.
     // The second author produces DIFFERENT canonical inputs and output vectors.
@@ -121,6 +124,7 @@ async fn test_gate5_remote_get_by_action_hash() {
      .expect("G5_REVERSE_OPS_NOT_INTEGRATED");
     println!("G5_REVERSE_DHT_CONSISTENCY=PASS");
 
+    let reverse_read_started = Instant::now();
     let mut a_recovered: Option<Record> = None;
     for attempt in 0..5 {
         println!("G5_REMOTE_A_ATTEMPT={}", attempt + 1);
@@ -152,6 +156,7 @@ async fn test_gate5_remote_get_by_action_hash() {
     assert_eq!(b_typed.authority, "model_conformity_only", "G5_REVERSE_AUTHORITY_ESCALATION");
     assert!(!b_typed.financial_admission, "G5_REVERSE_FINANCIAL_ADMISSION_BYPASS");
     println!("G5_BIDIRECTIONAL_TYPED_REPLICATION=PASS");
+    println!("G7_CI_HOST_READ_B_TO_A_MS={}", reverse_read_started.elapsed().as_millis());
     // Independently sourced from PR #55 (which already passed on isolated CI):
     // a well-typed but never issued action hash must not resolve on B.
     // Timeout is a hard failure and must never be mistaken for a clean miss.
@@ -205,6 +210,7 @@ async fn test_gate5_remote_get_by_action_hash() {
     assert_eq!(after_typed.evidence_class, "TEST");
     assert!(!after_typed.financial_admission);
     println!("G5_POST_ATTACK_VALID_RECORD_INTEGRITY=PASS");
+    println!("G7_CI_HOST_TEST_WALL_MS={}", suite_started.elapsed().as_millis());
 
     // Both directions use one local CI runner. These assertions do NOT prove
     // cross-host resilience, partitions/rejoin, scientific truth or oracle quorum.
