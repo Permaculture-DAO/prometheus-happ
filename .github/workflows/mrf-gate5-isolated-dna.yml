@@ -16,6 +16,7 @@ env:
   G5_EXPECTED_COORDINATOR_SHA256: f490b2f89eb810de9913a5c8bd153402567032f2ba6c43f1109cf58c9064af7f
   G5_EXPECTED_INTEGRITY_SHA256: 633e905171d133a204c3bfca3e8ee15794c80676d22631c68c7d9f4dd9cb8581
   G5_EXPECTED_DNA_SHA256: 739d1fb6ffb1f61de14c187a27f926366ba9ed88fdd2057b72503c871ebc779f
+  G5_EXPECTED_UPSTREAM_LOCK_SHA256: 294832bbea633e68b49fb2c97b841da214118f7672f78bd314600d1002c64464
 jobs:
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
@@ -83,6 +84,19 @@ jobs:
             "$G5_EXPECTED_DNA_SHA256" "prometheus_mrf_synthetic_lab.dna" \
             | sha256sum -c -) || { echo "::error::Synthetic Gate-5 pinned DNA/WASM digest changed; FAIL CLOSED"; exit 1; }
           echo "G5_PINNED_DNA_AND_WASM_DIGESTS=PASS"
+          # Negative control on a disposable copy, NEVER on the tested DNA:
+          # a one-byte artifact mutation must be rejected by the same pin.
+          tampered="$RUNNER_TEMP/g5-tamper-probe.dna"
+          cp "$root/prometheus_mrf_synthetic_lab.dna" "$tampered"
+          printf 'X' >> "$tampered"
+          if printf '%s  %s\n' "$G5_EXPECTED_DNA_SHA256" "$tampered" \
+            | sha256sum -c - > "$RUNNER_TEMP/g5-negative-check.log" 2>&1; then
+            echo "::error::DNA digest guard accepted deliberately mutated bytes"
+            exit 1
+          fi
+          grep -Fq ': FAILED' "$RUNNER_TEMP/g5-negative-check.log" \
+            || { echo "::error::DNA mutation check failed for an unrelated reason"; exit 1; }
+          echo "G5_TAMPERED_DNA_REJECTED=PASS"
       - uses: actions/upload-artifact@v4
         with:
           name: mrf-gate5-new-dna-TEST-only
@@ -144,6 +158,9 @@ jobs:
           gh api 'repos/holochain/holochain/contents/Cargo.lock?ref=3bdeaccd1c54fa351e76f7347601dfbc061d5bd4' --jq '.content' \
             | tr -d '\n' | base64 -d > "$lock"
           test "$(wc -c < "$lock")" -gt 200000
+          printf '%s  %s\n' "$G5_EXPECTED_UPSTREAM_LOCK_SHA256" "$lock" | sha256sum -c - \
+            || { echo "::error::Pinned Holochain upstream Cargo.lock mismatch; FAIL CLOSED"; exit 1; }
+          echo "G5_PINNED_UPSTREAM_CARGO_LOCK=PASS"
           grep -A2 'name = "ed25519-dalek"' "$lock" | tail -8
           echo "G5_UPSTREAM_HOLOCHAIN_061_LOCK_SHA256=$(sha256sum "$lock" | cut -d' ' -f1)"
           # The test's smaller workspace may trim nonused upstream packages.
