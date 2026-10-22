@@ -29,7 +29,15 @@ test result: FAILED. 0 passed; 1 failed; finished in 209.83s
 The containing process returned exit 1 after ~259.58s including compilation and WSL startup. **Interpretation:** creation on A succeeded and B attempted HDK `get(original_action_hash, GetOptions::network())` but **did not return before the explicit 40-second deadline**; typed content equality was NOT established, and there is **NO cross-peer/DHT replication PASS**. It does not by itself prove whether root cause lies in network transport, peer DHT integration, a blocked host zome call or timing constraints. No fallback to unverifiable 'success' allowed.
 
 ## Runtime test 2: author-local endpoint sanity — SEPARATE GATE
-A single-conductor author-local `local_read_sanity.rs` test was authored to create and then fetch the same action on A using the same new endpoint and exact DNA. It is **not the cross-peer proof**; result must be recorded only when the test exits.
+**PASS:** a completed author-local `local_read_sanity.rs` test used the **same Gate-5 DNA SHA-256 `1d20d26ec6d03af81e3cc7f85906615c4894c65bc843b6f949f969afb851d009`**. Output:
+```text
+LOCAL_A_CREATE_BEGIN
+LOCAL_A_CREATE_PASS
+LOCAL_A_GET_BEGIN
+LOCAL_A_GET_EXACT_ACTION_PASS
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 73.17s
+```
+Windows wrapper exit 0 after ~178.45s, including compilation/startup. The endpoint correctly fetched the author's original action and checked hash, TEST class, model hash, numeric vector and financial-admission flag. **This supports the local coordinator/read/serialization path only; it does NOT prove any cross-peer network read.**
 
 ## Existing baseline not promoted
 Previous Gate 4 single-conductor 7/7 bounded PASS; peer-info two-conductor discovery PASS; B-only receipt creation PASS; reversed B→A sequential writes PASS; A→B sequential writes timed out. These verify separate hypotheses and do not establish DHT replication.
@@ -41,3 +49,6 @@ Previous Gate 4 single-conductor 7/7 bounded PASS; peer-info two-conductor disco
 4. CI whole-DNA rebuild, pinned lockfile and responsible steward approval prior to any production promotion.
 
 **Hard invariants:** `REAL_DATA_PERSISTENCE_GATE_CLOSED`; no signed Canon or live runtime modifications; scientific proof, oracle independence, ecological improvement, financing, PRU/RAP/TRBK rights all remain unestablished.
+
+## Evidence-constrained conclusion
+**GO:** standalone Rust/HDK 0.6.1 check, Gate-5 coordinator WASM compile locally and independently, packed synthetic DNA, author-local exact-hash record lookup. **HOLD/NO-GO:** B remote DHT fetch (40-second timeout, 0/1 test), multi-peer authority validation, gossip/partition/rejoin, empirical sensors and finance. The combination of author-local PASS and B-remote timeout is consistent with a problem in the cross-peer path or its timing, but is **not a root-cause proof**. Keep REAL closed.
