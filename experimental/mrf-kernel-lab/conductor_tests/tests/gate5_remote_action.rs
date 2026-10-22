@@ -32,6 +32,8 @@ async fn test_gate5_remote_get_by_action_hash() {
         .setup_app("TEST-g5-isolated",&[dna])
         .await.expect("two isolated apps")
         .into_tuples();
+    assert_ne!(alice.agent_pubkey(), bob.agent_pubkey(), "G5_DISTINCT_AGENTS_REQUIRED");
+    println!("G5_DISTINCT_AGENTS=PASS");
     let za=alice.zome("prometheus_mrf_coordinator_lab");
     let zb=bob.zome("prometheus_mrf_coordinator_lab");
 
@@ -76,5 +78,19 @@ async fn test_gate5_remote_get_by_action_hash() {
     let record=recovered.expect("G5_REMOTE_B_GET_EMPTY");
     assert_eq!(record.action_address(),&ah,"G5_ACTION_HASH_MISMATCH");
     println!("G5_REMOTE_ACTION_HASH_MATCH=PASS");
+    assert_eq!(record.action().author(), alice.agent_pubkey(), "G5_ACTION_AUTHOR_MISMATCH");
+    println!("G5_AUTHOR_PROVENANCE=PASS");
+
+    // An independently constructed, validly typed but unissued action hash
+    // must not resolve to an existing receipt on B. Keep the negative probe
+    // bounded and fail closed; do not turn timeout into success.
+    let unknown_hash=ActionHash::from_raw_36(vec![0xa5;36]);
+    assert_ne!(unknown_hash,ah,"G5_NEGATIVE_HASH_COLLISION");
+    let unknown:Option<Record>=tokio::time::timeout(
+        Duration::from_secs(75),
+        batch[1].call(&zb,"get_synthetic_receipt_by_action",unknown_hash)
+    ).await.expect("G5_UNKNOWN_HASH_LOOKUP_TIMEOUT");
+    assert!(unknown.is_none(),"G5_UNKNOWN_HASH_RETURNED_RECORD");
+    println!("G5_UNKNOWN_ACTION_HASH_REJECTED=PASS");
     // A remote get is not an authority-level validation or ecological audit.
 }
