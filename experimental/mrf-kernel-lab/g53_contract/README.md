@@ -54,3 +54,14 @@ The strict nonce-ledger snapshot JSON is schema PRM-G53-NONCE-SNAPSHOT-v1 with a
 A passing check prints G53_TEST_REVIEWER_ED25519_SIGNATURE=PASS and G53_NONCE_UNUSED_IN_SUPPLIED_SNAPSHOT=PASS but also G53_REVIEWER_KEY_ENROLLMENT=NOT_PROVEN, G53_NONCE_LOG_COMPLETENESS=NOT_PROVEN, G53_ATOMIC_NONCE_CONSUMPTION=NOT_PROVEN and G53_GO_NO_GO=HOLD_PENDING_INDEPENDENT_REVIEW. Absence in a user-supplied log cannot establish global nonce nonreuse or replay protection under concurrency. A separate authenticated trust registry and transactional nonce-consumption store with concurrency control are required before any physical G5.3 GO.
 
 This is test-only, not a release signature, not REAL persistence, not live Holochain authority and not a scientific or financial certification.
+
+
+## G5.3 — Transactional nonce-claim laboratory (one local TEST SQLite file)
+
+Two TEST-only modules, g53_nonce_store.py and test_g53_nonce_store.py, extend the bounded audit. Before any write, the verifier **recomputes the complete Ed25519 host and reviewer checks** on caller-supplied synthetic fixtures. On success it attempts to claim the session challenge SHA-256 and nonce via SQLite BEGIN IMMEDIATE, with UNIQUE constraints on both keys. A separate explicit provisioning function creates the ephemeral store; the claim path refuses missing stores. A clock check is repeated inside the transaction.
+
+SQLite uses synchronous=FULL, immutable UPDATE/DELETE triggers and a schema check that refuses missing uniqueness/trigger guards. Each concurrent client gets its own connection; tests include six simultaneous contenders, a separate Python process attempting the same insert, replay after reopening the database, changed signed challenge with a reused nonce, distinct fresh signed nonce, bad signature/REAL-class rejection before consumption, and missing/corrupted database schema.
+
+**Limit:** this proves atomic behavior only among contenders accessing the SAME local TEST database. It does NOT establish distributed nonce uniqueness, trusted reviewer enrollment, physical host identity, a production-grade highly available service, cross-host consensus, secure backups, or partition resilience. An administrator who can replace or roll back the file can defeat the SQLite-internal append-only triggers. No production services, live conductors, private credentials or real data are involved.
+
+The success path explicitly retains G53_DISTRIBUTED_NONCE_CONSENSUS=NOT_PROVEN, G53_LEDGER_OPERATOR_TRUST=NOT_PROVEN, G53_PHYSICAL_INDEPENDENCE=NOT_PROVEN and G53_GO_NO_GO=HOLD_PENDING_INDEPENDENT_REVIEW. No changes to production, Canon, tokens, finances or REAL_DATA_PERSISTENCE_GATE_CLOSED are authorized.

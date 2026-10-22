@@ -33,6 +33,8 @@ jobs:
           echo 'G53_EPHEMERAL_ED25519_NEGATIVE_TESTS=PASS'
           python3 -m unittest -v test_g53_witness_audit.py
           echo 'G53_TEST_WITNESS_AND_NONCE_SNAPSHOT_TESTS=PASS'
+          python3 -m unittest -v test_g53_nonce_store.py
+          echo 'G53_TEST_LOCAL_ATOMIC_NONCE_AND_REPLAY=PASS'
 
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
