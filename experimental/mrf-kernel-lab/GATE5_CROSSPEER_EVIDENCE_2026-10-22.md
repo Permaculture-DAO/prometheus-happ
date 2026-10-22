@@ -52,3 +52,14 @@ Previous Gate 4 single-conductor 7/7 bounded PASS; peer-info two-conductor disco
 
 ## Evidence-constrained conclusion
 **GO:** standalone Rust/HDK 0.6.1 check, Gate-5 coordinator WASM compile locally and independently, packed synthetic DNA, author-local exact-hash record lookup. **HOLD/NO-GO:** B remote DHT fetch (40-second timeout, 0/1 test), multi-peer authority validation, gossip/partition/rejoin, empirical sensors and finance. The combination of author-local PASS and B-remote timeout is consistent with a problem in the cross-peer path or its timing, but is **not a root-cause proof**. Keep REAL closed.
+
+
+## Independent CI and workstation safety closure — 2026-10-22
+
+**Verified:** All five GitHub Actions workflows associated with latest hApp PR #50 head completed **successfully**: `happ-ci`, `gateway-ci`, `secret-scan`, `mrf-kernel-synthetic-parity` and `mrf-gate5-readonly-coordinator`. These independent checks **compile and test selected components**, but they DO NOT execute or pass the failing multi-peer DHT scenario.
+
+**Host capacity guard:** free Windows C dropped from ~9.24 GiB before the sequence to ~3.905 GiB after WASM/host builds; D last measured ~1.738 GiB. The packed TEST DNA and separate coordinator WASM copy were present, and `certutil SHA256` verified the coordinator copy hash as `0e4b6e2531536e7b33f41f3806c284d1569cc805dcf870cf50fa4eff821a59b1`.
+
+After confirming no `cargo`/`rustc` processes, no reparse point and preservation of `Cargo.lock`, source and packed TEST DNA, only the **newly generated** `zome_coordinator_lab_gate5/target` cache (approx. 0.64 GiB) was removed on Federica. C then had ~4.342 GiB free. No application databases, source branches, signed Canon, VHDX, active runtime, keys or project archives were deleted. No further heavy conductor attempts were launched.
+
+**Final disposition:** local synthetic model receipt Get endpoint GO; B cross-peer DHT Get NO-GO (failed, timeout 40s); production and scientific/financial gates unchanged. Engineering follow-up: [Issue #51](https://github.com/Permaculture-DAO/prometheus-happ/issues/51).
