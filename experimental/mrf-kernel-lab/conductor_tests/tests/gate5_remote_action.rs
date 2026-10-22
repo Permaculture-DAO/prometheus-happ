@@ -93,5 +93,61 @@ async fn test_gate5_remote_get_by_action_hash() {
     assert_eq!(typed.authority, "model_conformity_only", "G5_AUTHORITY_ESCALATION");
     assert!(!typed.financial_admission, "G5_FINANCIAL_ADMISSION_BYPASS");
     println!("G5_REMOTE_TYPED_PAYLOAD_MATCH=PASS");
+
+    // Gate 5.2: reverse direction, same immutable TEST DNA and two conductors.
+    // The second author produces DIFFERENT canonical inputs and output vectors.
+    // A must retrieve B's exact action and decode its typed entry independently.
+    let mut b_input = test_receipt();
+    b_input["subject_id"] = serde_json::json!("TEST-gate5-remote-b");
+    b_input["input_i64"] = serde_json::json!([320,120]);
+    b_input["output_i64"] = serde_json::json!([3,0]);
+    println!("G5_B_AUTHOR_BEGIN");
+    let bh: ActionHash = tokio::time::timeout(
+        Duration::from_secs(120),
+        batch[1].call(&zb, "create_synthetic_receipt", b_input),
+    ).await.expect("G5_B_AUTHOR_TIMEOUT");
+    assert_ne!(ah, bh, "G5_DISTINCT_ACTION_HASH_EXPECTED");
+    println!("G5_B_AUTHOR=PASS");
+
+    println!("G5_REVERSE_DHT_CONSISTENCY_BEGIN");
+    tokio::time::timeout(
+        Duration::from_secs(135),
+        await_consistency_s(120, &[alice.clone(), bob.clone()]),
+    ).await.expect("G5_REVERSE_CONSISTENCY_TIMEOUT")
+     .expect("G5_REVERSE_OPS_NOT_INTEGRATED");
+    println!("G5_REVERSE_DHT_CONSISTENCY=PASS");
+
+    let mut a_recovered: Option<Record> = None;
+    for attempt in 0..5 {
+        println!("G5_REMOTE_A_ATTEMPT={}", attempt + 1);
+        let response: Option<Record> = tokio::time::timeout(
+            Duration::from_secs(75),
+            batch[0].call(&za, "get_synthetic_receipt_by_action", bh.clone()),
+        ).await.expect("G5_A_GET_TIMEOUT");
+        if response.is_some() {
+            a_recovered = response;
+            break;
+        }
+        tokio::time::sleep(Duration::from_secs(3)).await;
+    }
+    let a_record = a_recovered.expect("G5_REMOTE_A_GET_EMPTY");
+    assert_eq!(a_record.action_address(), &bh, "G5_REVERSE_ACTION_HASH_MISMATCH");
+    let b_typed: MrfSyntheticReceipt = a_record.entry()
+        .to_app_option()
+        .expect("G5_REVERSE_RECEIPT_DECODE_FAILED")
+        .expect("G5_REVERSE_RECEIPT_ENTRY_MISSING");
+    assert_eq!(b_typed.subject_id, "TEST-gate5-remote-b");
+    assert_eq!(b_typed.evidence_class, "TEST", "G5_REVERSE_REAL_GATE_BYPASS");
+    assert_eq!(b_typed.model_sha256,
+        "e074715a26129c8f00e828774eadc71ef33f94a620c0dcd0e00216b6156bda5f",
+        "G5_REVERSE_MODEL_HASH_MISMATCH");
+    assert_eq!(b_typed.input_i64, vec![320,120], "G5_REVERSE_INPUT_MISMATCH");
+    assert_eq!(b_typed.output_i64, vec![3,0], "G5_REVERSE_OUTPUT_MISMATCH");
+    assert_eq!(b_typed.authority, "model_conformity_only", "G5_REVERSE_AUTHORITY_ESCALATION");
+    assert!(!b_typed.financial_admission, "G5_REVERSE_FINANCIAL_ADMISSION_BYPASS");
+    println!("G5_BIDIRECTIONAL_TYPED_REPLICATION=PASS");
+
+    // Both directions use one local CI runner. These assertions do NOT prove
+    // cross-host resilience, partitions/rejoin, scientific truth or oracle quorum.
     // A remote get is not an authority-level validation or ecological audit.
 }
