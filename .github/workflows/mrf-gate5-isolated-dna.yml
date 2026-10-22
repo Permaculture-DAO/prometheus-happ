@@ -205,42 +205,42 @@ jobs:
           # Descriptive ONLY: n=5 correlated same-runner observations each way.
           # No arbitrary thresholds, SLO, percentile inference or edge claim.
           python3 - "$metrics" <<'PY'
-import pathlib
-import statistics
-import sys
-
-path = pathlib.Path(sys.argv[1])
-values = {}
-for line in path.read_text(encoding="utf-8").splitlines():
-    if "=" not in line:
-        continue
-    name, value = line.split("=", 1)
-    values.setdefault(name, []).append(value)
-
-rows = []
-for direction in ("A_TO_B", "B_TO_A"):
-    prefix = f"G7_CI_HOST_WARM_{direction}_"
-    samples = []
-    for i in range(1, 6):
-        key = f"{prefix}{i}_MS"
-        found = values.get(key, [])
-        if len(found) != 1 or not found[0].isdigit():
-            raise SystemExit(f"G7_INVALID_OR_DUPLICATE_SAMPLE:{key}")
-        samples.append(int(found[0]))
-    if len(samples) != 5:
-        raise SystemExit("G7_WRONG_SAMPLE_COUNT")
-    for stat_name, val in (
-        ("MIN", min(samples)),
-        ("MEDIAN", int(statistics.median(samples))),
-        ("MAX", max(samples)),
-    ):
-        rows.append(f"G7_CI_HOST_WARM_{direction}_{stat_name}_MS={val}")
-with path.open("a", encoding="utf-8") as out:
-    out.write("\n".join(rows) + "\n")
-for row in rows:
-    print(row)
-print("G7_DESCRIPTIVE_WARM_STATS=PASS")
-PY
+          import pathlib
+          import statistics
+          import sys
+          
+          path = pathlib.Path(sys.argv[1])
+          values = {}
+          for line in path.read_text(encoding="utf-8").splitlines():
+              if "=" not in line:
+                  continue
+              name, value = line.split("=", 1)
+              values.setdefault(name, []).append(value)
+          
+          rows = []
+          for direction in ("A_TO_B", "B_TO_A"):
+              prefix = f"G7_CI_HOST_WARM_{direction}_"
+              samples = []
+              for i in range(1, 6):
+                  key = f"{prefix}{i}_MS"
+                  found = values.get(key, [])
+                  if len(found) != 1 or not found[0].isdigit():
+                      raise SystemExit(f"G7_INVALID_OR_DUPLICATE_SAMPLE:{key}")
+                  samples.append(int(found[0]))
+              if len(samples) != 5:
+                  raise SystemExit("G7_WRONG_SAMPLE_COUNT")
+              for stat_name, val in (
+                  ("MIN", min(samples)),
+                  ("MEDIAN", int(statistics.median(samples))),
+                  ("MAX", max(samples)),
+              ):
+                  rows.append(f"G7_CI_HOST_WARM_{direction}_{stat_name}_MS={val}")
+          with path.open("a", encoding="utf-8") as out:
+              out.write("\n".join(rows) + "\n")
+          for row in rows:
+              print(row)
+          print("G7_DESCRIPTIVE_WARM_STATS=PASS")
+          PY
           rss="$(awk -F= '$1=="G7_MAX_SINGLE_PROCESS_RSS_KIB" {print $2}' "$metrics")"
           elapsed="$(awk -F= '$1=="G7_ELAPSED_SECONDS" {print $2}' "$metrics")"
           [[ "$rss" =~ ^[0-9]+$ ]] && (( rss > 0 )) || { echo "::error::Invalid RSS measurement"; exit 1; }
