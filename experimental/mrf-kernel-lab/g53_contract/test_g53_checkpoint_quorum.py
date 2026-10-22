@@ -29,14 +29,14 @@ class QuorumChainTest(LedgerCheckpointTest):
             self.review_keys[digest] = private
             self.review_pubs[digest] = public
         self.reviewers = sorted(self.review_keys)
-        self.registry = {
+        self.quorum_registry = {
             "schema": REGISTRY_SCHEMA,
             "test_source_sha256": SOURCE,
             "authorization_ref": self.policy["review_authorization_ref"],
             "reviewer_pubkey_spki_sha256": self.reviewers,
             "required_quorum": 2,
         }
-        self.registry_pin = sha256(canonical(self.registry))
+        self.quorum_registry_pin = sha256(canonical(self.quorum_registry))
         self.chain, self.latest_head, self.latest_seq = [], GENESIS, 0
 
     def sign_statement(self, statement, signers=None):
@@ -82,7 +82,7 @@ class QuorumChainTest(LedgerCheckpointTest):
     def verify(self, **overrides):
         args = dict(
             reviewer_public_pems=self.review_pubs,
-            externally_approved_registry_sha256=self.registry_pin,
+            externally_approved_registry_sha256=self.quorum_registry_pin,
             externally_pinned_latest_head_sha256=self.latest_head,
             externally_pinned_latest_sequence=self.latest_seq,
             independently_approved_test_source_sha256=SOURCE,
@@ -90,7 +90,7 @@ class QuorumChainTest(LedgerCheckpointTest):
             now_epoch=self.now)
         args.update(overrides)
         return verify_quorum_checkpoint_chain(self.db_path, self.chain,
-                                              self.registry, **args)
+                                              self.quorum_registry, **args)
 
     def rejected(self, message, **overrides):
         with self.assertRaisesRegex(PreflightRejected, message):
@@ -137,13 +137,13 @@ class QuorumChainTest(LedgerCheckpointTest):
 
     def test_quorum_forged_registry(self):
         self.first()
-        self.registry["required_quorum"] = 3
+        self.quorum_registry["required_quorum"] = 3
         self.rejected("UNAPPROVED_REGISTRY_DIGEST")
 
     def test_quorum_noninteger_quorum(self):
         self.first()
-        self.registry["required_quorum"] = True
-        self.registry_pin = sha256(canonical(self.registry))
+        self.quorum_registry["required_quorum"] = True
+        self.quorum_registry_pin = sha256(canonical(self.quorum_registry))
         self.rejected("INVALID_QUORUM")
 
     def test_quorum_missing_reviewer(self):
