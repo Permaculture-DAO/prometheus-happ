@@ -35,6 +35,8 @@ jobs:
           echo 'G53_TEST_WITNESS_AND_NONCE_SNAPSHOT_TESTS=PASS'
           python3 -m unittest -v test_g53_nonce_store.py
           echo 'G53_TEST_LOCAL_ATOMIC_NONCE_AND_REPLAY=PASS'
+          python3 -m unittest -v test_g53_ledger_checkpoint.py
+          echo 'G53_TEST_EXTERNALLY_PINNED_LEDGER_CHECKPOINT=PASS'
 
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
