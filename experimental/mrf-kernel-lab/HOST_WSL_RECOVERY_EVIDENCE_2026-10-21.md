@@ -1,0 +1,50 @@
+# HOST-WSL-01 — Controlled workstation recovery evidence (2026-10-21)
+
+**Status:** Host capacity incident partially mitigated; DHT/multi-conductor proof still separately gated. This report is an operational appendix to draft MRF [PR #48](https://github.com/Permaculture-DAO/prometheus-happ/pull/48), not an authoritative Canon update, no production runtime authorization.
+
+## Evidence observed directly on authorized workstation Federica
+- Following a previous failed Holochain peer smoke (`Wsl/Service/CreateInstance/E_FAIL`, guest passwd/locale I/O errors and inability to open temporary SQLite WASM database), the **Windows host C volume had approximately 0.07 GiB free**. A second D volume had only 0.63 GiB free.
+- The controlled experimental conductor `target/debug` cache (generated build data, not source) was found to occupy several GiB; removing **only** that verified, non-linked cache freed ~3.6 GiB on host C.
+- A second verified `zome_integrity_lab/target/debug` cache (~0.67 GiB) was removed. All source repositories, GitHub branches, packed TEST DNAs, release WASM artifacts, evidence documents, private keys and application databases were left untouched.
+- Windows reported **C: 4.397 GiB free** after these two controlled cache removals. **D: remained ~0.631 GiB free** and was not cleaned.
+- Host `WSLService` and `vmcompute` services were running; both WSL v2 distributions appeared Stopped. The default Ubuntu sparse `ext4.vhdx` consumed about 95.57 GiB on C; a separate project WSL disk was ~3.92 GiB on D.
+- After freeing space, `wsl.exe -d Ubuntu -e /usr/bin/true` exited **0**; a subsequent read-only `df -h` worked. The guest filesystem reported extensive *virtual* free blocks while host C was 99% full; guest free block counts are not a substitute for host free physical capacity.
+- A bounded Python standard-library SQLite test used a uniquely named disposable directory under guest `/tmp`; create/insert/read succeeded, then the temporary directory was removed automatically (`sqlite_temp_directory=PASS`, `insert_and_read=PASS`, test DB 4096 bytes).
+
+## Safety invariants
+- No WSL service shutdown, `wsl --shutdown`, VHDX compaction, filesystem repair, distro export/import or process kill was performed.
+- No destructive operations on shared project files, keys, databases, signed Canon, installed production DNA or active hApp were authorized or executed.
+- Reclaim additional volume capacity with a separately reviewed disk inventory; never delete backups, VHDX files or unreviewed `D:\tmp` material as speculative cleanup.
+
+## Engineering acceptance before heavy distributed tests
+1. Verify stable Ubuntu launch, guest/user lookup, host/guest disk capacity and SQLite temporary DB semantics.
+2. Maintain a host free-space safety margin (engineering target: >=10 GiB C and >=5 GiB D, not a Microsoft/Holochain formal requirement), or execute distributed smoke on a separately provisioned ephemeral host with sufficient capacity.
+3. Run one bounded peer-info smoke from an existing compiled test binary, record its **completed** test result rather than a mid-test printed line.
+4. Only then test two independently owned agents reading/verifying the same immutable receipt through the DHT, with explicit propagation timeout, canonical action hash, negative op types, network partitions, and convergence criteria.
+5. Preserve separate conclusions for in-process exact-DNA 7/7 PASS, independent CI PASS, peer-info discovery, and true DHT replication. Neither prior PASS proves REAL-world evidence or oracle independence.
+
+**Current restriction:** `REAL_DATA_PERSISTENCE_GATE_CLOSED`, production write security, scientific certification, Aeterna/Ravel/PRU/RAP/TRBK financial/token boundaries and signed Canon remain unchanged.
+
+
+## Verified bounded two-conductor discovery smoke — 2026-10-21
+
+Following recovery of Ubuntu startup and local SQLite, the precompiled exact-DNA TEST binary `peer_info_smoke-daee6650e4bbccb3` ran on the recovered Ubuntu WSL instance:
+```text
+running 1 test
+test two_test_conductors_exchange_peer_info ...
+TWO_CONDUCTORS_PEER_INFO_DISCOVERY=PASS
+ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 75.23s
+```
+The containing Windows process exited 0 (about 100.17s including Ubuntu startup). This is **real, completed two-conductor peer-info discovery PASS**, superseding the earlier incomplete and database-failed discovery tests *only for this narrow scenario*.
+
+The host C free capacity measured ~4.239 GiB immediately after the run, D ~0.631 GiB; both WSL distributions then reported Stopped. The more expensive two-conductor receipt creation/independent validation case and **remote DHT record fetch** are separate gates, never implied by the discovery PASS.
+
+
+## Two-conductor application trial after recovery — timeout, not PASS
+
+After the independently completed `peer_info_smoke` PASS, the previously compiled combined `two_conductors-6ba934d4c9932ce2` binary was re-executed on recovered Ubuntu with a **230-second runtime bound** and a Windows preflight requiring >=4 GiB free on C. It printed `PEER_INFO_EXCHANGE=PASS` but never completed both independent receipt operations or the REAL rejection. The containing Windows process returned **exit 1 at about 242.09s** (includes Ubuntu startup); classify this as **TIMEOUT/INCOMPLETE**.
+
+A post-run disk check showed **C: ~4.235 GiB free, D: ~0.631 GiB free**, so no new disk exhaustion was observed in this run. That does **not** diagnose the precise cause of stalled `conductor.call` (network, DHT dependencies, internal scheduler and test harness are still candidates). No multi-agent MRF receipt PASS or remote DHT validation may be claimed.
+
+Next change should add pre/post instrumentation and **independent strict timeouts for each coordinator call**, with the exact stage printed on failure; do not spin indefinitely or conflate peer-info discovery with DHT convergence.

@@ -27,7 +27,7 @@ fn toy() -> serde_json::Value {
 async fn synthetic_conductor_valid_and_adversarial_gates() {
     let (conductor,zome)=setup().await;
     // Gate 1: valid TEST synthetic receipt passes.
-    let _:ActionHash=conductor.call(&zome,"create_synthetic_receipt",toy()).await;
+    let receipt_hash:ActionHash=conductor.call(&zome,"create_synthetic_receipt",toy()).await;
     println!("GATE_1_TEST_VALID=PASS");
     // Gate 2: forged output rejected by the integrity callback.
     let mut x=toy(); x["output_i64"]=serde_json::json!([8,17]);
@@ -49,4 +49,23 @@ async fn synthetic_conductor_valid_and_adversarial_gates() {
     let res:Result<ActionHash,_>=conductor.call_fallible(&zome,"create_synthetic_receipt",x).await;
     assert!(res.is_err(),"GATE_5 financial authority must fail");
     println!("GATE_5_FINANCIAL_PROMOTION_REJECTED=PASS");
+
+    // Gate 6: even a conforming revised receipt may not overwrite history.
+    let mut x=toy(); x["subject_id"]=serde_json::json!("TEST-site-revised");
+    let update_payload=serde_json::json!({
+        "original_action_hash":receipt_hash,
+        "new_receipt":x
+    });
+    let result:Result<ActionHash,_>=conductor.call_fallible(
+        &zome, "attempt_update_receipt", update_payload
+    ).await;
+    assert!(result.is_err(),"GATE_6 prior signed receipt must remain immutable");
+    println!("GATE_6_UPDATE_REJECTED=PASS");
+
+    // Gate 7: deletion of the original receipt is forbidden.
+    let result:Result<ActionHash,_>=conductor.call_fallible(
+        &zome, "attempt_delete_receipt", receipt_hash
+    ).await;
+    assert!(result.is_err(),"GATE_7 deletion cannot erase provenance");
+    println!("GATE_7_DELETE_REJECTED=PASS");
 }
