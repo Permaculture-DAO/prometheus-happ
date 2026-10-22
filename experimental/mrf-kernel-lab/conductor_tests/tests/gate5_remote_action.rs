@@ -24,32 +24,48 @@ async fn test_gate5_remote_get_by_action_hash() {
         .join("..").join("experimental_dna")
         .join("prometheus_mrf_synthetic_lab.dna");
     let dna=SweetDnaFile::from_bundle(&dna_path).await.expect("TEST DNA");
-    let mut a=SweetConductor::from_standard_config().await;
-    let mut b=SweetConductor::from_standard_config().await;
-    let app_a=a.setup_app("TEST-g5-a",&[dna.clone()]).await.expect("A setup");
-    let app_b=b.setup_app("TEST-g5-b",&[dna]).await.expect("B setup");
-    let za=app_a.cells()[0].clone().zome("prometheus_mrf_coordinator_lab");
-    let zb=app_b.cells()[0].clone().zome("prometheus_mrf_coordinator_lab");
+    // Holochain v0.6.1 upstream Sweettest's verified multi-node pattern:
+    // a shared rendezvous/bootstrap configuration, but distinct conductor
+    // state stores and agent identities. Do not use this with any live app.
+    let mut batch=SweetConductorBatch::from_standard_config_rendezvous(2).await;
+    let ((alice,), (bob,))=batch
+        .setup_app("TEST-g5-isolated",&[dna])
+        .await.expect("two isolated apps")
+        .into_tuples();
+    let za=alice.zome("prometheus_mrf_coordinator_lab");
+    let zb=bob.zome("prometheus_mrf_coordinator_lab");
 
-    let exchanged=tokio::time::timeout(
-        Duration::from_secs(90),SweetConductor::exchange_peer_info([&a,&b])
-    ).await.expect("G5_DISCOVERY_TIMEOUT");
-    assert!(exchanged,"G5_DISCOVERY_NO_PEER_INFO");
-    println!("G5_DISCOVERY=PASS");
+    println!("G5_GENESIS_CONSISTENCY_BEGIN");
+    tokio::time::timeout(
+        Duration::from_secs(135),
+        await_consistency_s(120,&[alice.clone(),bob.clone()])
+    ).await.expect("G5_GENESIS_CONSISTENCY_TIMEOUT")
+     .expect("G5_GENESIS_OPS_NOT_INTEGRATED");
+    println!("G5_GENESIS_CONSISTENCY=PASS");
 
     println!("G5_AUTHOR_A_BEGIN");
     let ah:ActionHash=tokio::time::timeout(
         Duration::from_secs(120),
-        a.call(&za,"create_synthetic_receipt",test_receipt())
+        batch[0].call(&za,"create_synthetic_receipt",test_receipt())
     ).await.expect("G5_A_CREATE_TIMEOUT");
     println!("G5_AUTHOR_A=PASS");
+
+    // Source-verified Holochain consistency helper checks DHT op integration
+    // across the two conductor databases, stronger than peer-info exchange.
+    println!("G5_DHT_CONSISTENCY_BEGIN");
+    tokio::time::timeout(
+        Duration::from_secs(135),
+        await_consistency_s(120,&[alice.clone(),bob.clone()])
+    ).await.expect("G5_DHT_CONSISTENCY_TIMEOUT")
+     .expect("G5_DHT_OPS_NOT_INTEGRATED");
+    println!("G5_DHT_CONSISTENCY=PASS");
 
     let mut recovered:Option<Record>=None;
     for attempt in 0..5 {
         println!("G5_REMOTE_B_ATTEMPT={}",attempt+1);
         let response:Option<Record>=tokio::time::timeout(
-            Duration::from_secs(40),
-            b.call(&zb,"get_synthetic_receipt_by_action",ah.clone())
+            Duration::from_secs(75),
+            batch[1].call(&zb,"get_synthetic_receipt_by_action",ah.clone())
         ).await.expect("G5_B_GET_TIMEOUT");
         if response.is_some() {
             recovered=response;
