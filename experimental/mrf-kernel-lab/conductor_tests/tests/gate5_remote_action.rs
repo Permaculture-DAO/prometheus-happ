@@ -33,6 +33,8 @@ async fn test_gate5_remote_get_by_action_hash() {
         .setup_app("TEST-g5-isolated",&[dna])
         .await.expect("two isolated apps")
         .into_tuples();
+    assert_ne!(alice.agent_pubkey(), bob.agent_pubkey(), "G5_DISTINCT_AGENTS_REQUIRED");
+    println!("G5_DISTINCT_AGENTS=PASS");
     let za=alice.zome("prometheus_mrf_coordinator_lab");
     let zb=bob.zome("prometheus_mrf_coordinator_lab");
 
@@ -77,6 +79,8 @@ async fn test_gate5_remote_get_by_action_hash() {
     let record=recovered.expect("G5_REMOTE_B_GET_EMPTY");
     assert_eq!(record.action_address(),&ah,"G5_ACTION_HASH_MISMATCH");
     println!("G5_REMOTE_ACTION_HASH_MATCH=PASS");
+    assert_eq!(record.action().author(), alice.agent_pubkey(), "G5_A_AUTHOR_PROVENANCE_MISMATCH");
+    println!("G5_A_AUTHOR_PROVENANCE=PASS");
     // A hash-address match alone is insufficient: deserialize the app entry
     // on conductor B and assert the exact frozen model/input/output contract.
     let typed: MrfSyntheticReceipt = record.entry()
@@ -132,6 +136,8 @@ async fn test_gate5_remote_get_by_action_hash() {
     }
     let a_record = a_recovered.expect("G5_REMOTE_A_GET_EMPTY");
     assert_eq!(a_record.action_address(), &bh, "G5_REVERSE_ACTION_HASH_MISMATCH");
+    assert_eq!(a_record.action().author(), bob.agent_pubkey(), "G5_B_AUTHOR_PROVENANCE_MISMATCH");
+    println!("G5_B_AUTHOR_PROVENANCE=PASS");
     let b_typed: MrfSyntheticReceipt = a_record.entry()
         .to_app_option()
         .expect("G5_REVERSE_RECEIPT_DECODE_FAILED")
@@ -146,6 +152,18 @@ async fn test_gate5_remote_get_by_action_hash() {
     assert_eq!(b_typed.authority, "model_conformity_only", "G5_REVERSE_AUTHORITY_ESCALATION");
     assert!(!b_typed.financial_admission, "G5_REVERSE_FINANCIAL_ADMISSION_BYPASS");
     println!("G5_BIDIRECTIONAL_TYPED_REPLICATION=PASS");
+    // Independently sourced from PR #55 (which already passed on isolated CI):
+    // a well-typed but never issued action hash must not resolve on B.
+    // Timeout is a hard failure and must never be mistaken for a clean miss.
+    let unknown_hash=ActionHash::from_raw_36(vec![0xa5;36]);
+    assert_ne!(unknown_hash,ah,"G5_NEGATIVE_HASH_A_COLLISION");
+    assert_ne!(unknown_hash,bh,"G5_NEGATIVE_HASH_B_COLLISION");
+    let absent:Option<Record>=tokio::time::timeout(
+        Duration::from_secs(75),
+        batch[1].call(&zb,"get_synthetic_receipt_by_action",unknown_hash),
+    ).await.expect("G5_UNKNOWN_HASH_LOOKUP_TIMEOUT");
+    assert!(absent.is_none(),"G5_UNKNOWN_HASH_RETURNED_RECORD");
+    println!("G5_UNKNOWN_ACTION_HASH_REJECTED=PASS");
 
     // Fail-closed adversarial preflight on the receiving/second conductor.
     // Check the *reported validator reason*, not merely is_err(), which may
