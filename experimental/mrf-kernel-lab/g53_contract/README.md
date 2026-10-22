@@ -26,3 +26,21 @@ The included 15 unit tests use **only fabricated TEST host data**, proving negat
 ## JSON file-level negative controls
 
 The CI executes both in-memory schema tests and **the actual command-line entrypoint** on fabricated files. JSON objects containing duplicate member names at any level or non-finite numbers are rejected explicitly. Missing, oversized (>32 KiB), malformed, inconsistent and production/REAL-open files return exit code 2. A structurally valid *fabricated* pair returns process status 0 for **schema validation only**, while still printing `G53_GO_NO_GO=HOLD_PENDING_INDEPENDENT_REVIEW` and `G53_PHYSICAL_INDEPENDENCE=NOT_PROVEN`; do **not** equate an exit code of 0 with permission to run a physical experiment. External reviewer sign-off and host observation remain mandatory.
+
+## Session-bound Ed25519 attestations (additional TEST gate)
+
+The optional standalone G5.3 tool, g53_attestation.py, cryptographically checks two signed, canonicalized host manifest claims against a short-lived challenge. It uses OpenSSL Ed25519 verification and never reads private signing keys. Unit-test keys are generated **ephemerally** on the CI runner and are not host identities or release credentials.
+
+Call with the same policy and host manifests checked by g53_preflight.py, plus a challenge, independently provisioned public keys and binary (64-byte) Ed25519 signatures:
+
+    python3 g53_attestation.py \
+      --policy /secure/policy.json --host-a /secure/a.json --host-b /secure/b.json \
+      --challenge /secure/challenge.json --approved-challenge-sha256 DIGEST_FROM_SEPARATE_APPROVAL \
+      --pub-a /secure/a.pub.pem --pub-b /secure/b.pub.pem \
+      --sig-a /secure/a.sig --sig-b /secure/b.sig
+
+The challenge JSON must contain exactly these fields: schema=PRM-G53-ATTESTATION-CHALLENGE-v1, nonce_hex (32 random nonzero bytes in lowercase hex), issued_at_epoch, expires_at_epoch, approved_test_source_sha, and host_a_pubkey_sha256/host_b_pubkey_sha256. The public-key digests use DER SubjectPublicKeyInfo bytes, **not** PEM text. Both signing agents sign the domain-separated bytes defined by g53_attestation.signed_message(challenge, role, manifest), incorporating the hashes of the **complete canonical challenge and role-specific manifest**. A 30-minute maximum validity window is enforced. Challenge SHA-256 is calculated over sorted-key compact UTF-8 JSON; it must be approved **out of band** and supplied to the verifier.
+
+Passing the signature check proves only control of keys matching the supplied pinned public-key digests at signing time. It **does not** prove independently enrolled/trusted keys, tamper-free physical telemetry, independent physical failure domains or unique nonce usage. Identical signed payloads can be replayed **within** a valid challenge window unless an independent approval service tracks nonce consumption. The tool therefore outputs G53_TRUSTED_KEY_ENROLLMENT=NOT_PROVEN, G53_NONCE_NONREUSE=NOT_PROVEN, G53_PHYSICAL_INDEPENDENCE=NOT_PROVEN, and G53_GO_NO_GO=HOLD_PENDING_INDEPENDENT_REVIEW even when cryptographic checks PASS.
+
+Unit tests use fabricated manifests and temporary Ed25519 keys, including mutated claims, swapped signatures, changed challenge, stale/future/oversized validity windows, wrong trust pins and REAL boundary negatives. This is a proof-of-possession regression suite, not G5.3 acceptance.

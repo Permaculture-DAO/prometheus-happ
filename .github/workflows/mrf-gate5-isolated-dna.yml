@@ -29,6 +29,8 @@ jobs:
           cd experimental/mrf-kernel-lab/g53_contract
           python3 -m unittest -v test_g53_preflight.py
           echo 'G53_SCHEMA_NEGATIVE_TESTS=PASS'
+          python3 -m unittest -v test_g53_attestation.py
+          echo 'G53_EPHEMERAL_ED25519_NEGATIVE_TESTS=PASS'
 
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
