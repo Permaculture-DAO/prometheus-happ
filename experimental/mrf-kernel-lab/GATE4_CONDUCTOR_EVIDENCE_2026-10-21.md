@@ -79,3 +79,23 @@ A fresh replay of the compiled full two-conductor application harness with a Win
 The `two_conductors.rs` source now includes stage markers `STAGE_A_CREATE_BEGIN`, `STAGE_B_CREATE_BEGIN`, `STAGE_B_REAL_REJECTION_BEGIN` and per-call bounded timeouts. **This instrumented version has been committed but not executed** because of constrained host disk. Thus it is an unverified diagnostic change, not new evidence. See [Gate 5 cross-peer test contract](GATE5_DHT_REPLICATION_TEST_CONTRACT_2026-10-21.md) and [host recovery evidence](HOST_WSL_RECOVERY_EVIDENCE_2026-10-21.md).
 
 The earlier single-conductor 7/7 PASS is unchanged. All real environmental/scientific/financial gates remain closed.
+
+
+## Instrumented two-conductor replay — 2026-10-22
+
+The previously committed per-stage diagnostic `two_conductors.rs` was actually synchronized to Federica's **isolated** WSL laboratory and executed against exact TEST DNA SHA-256 `8f32a4bf0ca75f04649671cc6d5b73cecebdb0bd36a51fb58700f3837717abca`.
+
+Actual observed test output:
+```text
+PEER_INFO_EXCHANGE=PASS
+STAGE_A_CREATE_BEGIN
+STAGE_A_CREATE_PASS
+STAGE_B_CREATE_BEGIN
+```
+The outer `timeout 280s cargo test --offline --locked --test two_conductors -- --nocapture --test-threads=1` process then returned **exit 1 at approximately 291.59 seconds** including WSL startup, without `STAGE_B_CREATE_PASS` or `SECOND_CONDUCTOR_REAL_REJECTION=PASS`.
+
+**Disposition:** discovered where the test hangs: **the second coordinator receipt creation stage B**, after valid receipt creation succeeded at A; NO proof yet that B independently creates, that an attempted REAL on B is rejected, or that any A-authored DHT receipt is remotely retrievable on B. The 75-second Tokio wrapper did not produce an explicit stage-specific timeout before the outer process stopped, so do not assume the timer itself is effective under a blocked coordinator/conductor future. This observation is not proof of a defect in the toy numeric MRF nor of a specific network failure.
+
+Host volume C had ~8.991 GiB free during the run; D ~0.634 GiB. No host data or production DNA changes. Follow-up targeted `conductor_b_only.rs` isolates B's creation with conductor A initialized but deliberately idle; **its result must be recorded separately** before interpreting whether sequential writes are causal.
+
+**Remaining Gate-5 review:** distinguish entry author-local success, host runtime reentrancy/blocking, Holochain DHT authority integration, secondary agent validation and remote fetch. No REAL persistence, Canon promotion, oracle authenticity or capital authority.
