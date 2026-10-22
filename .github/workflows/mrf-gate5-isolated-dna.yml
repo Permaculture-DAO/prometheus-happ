@@ -82,3 +82,34 @@ jobs:
             ${{ runner.temp }}/mrf-g5-isolated-dna/integrity_Cargo.lock
             ${{ runner.temp }}/mrf-g5-isolated-dna/coordinator_Cargo.lock
             ${{ runner.temp }}/mrf-g5-isolated-dna/wasm/*.wasm
+
+  test-cross-peer-read:
+    needs: pack-isolated-test-dna
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      OPENSSL_NO_VENDOR: "1"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - uses: actions/download-artifact@v4
+        with:
+          name: mrf-gate5-new-dna-TEST-only
+          path: ${{ runner.temp }}/mrf-g5-dna-tested
+      - name: Verify downloaded exact TEST DNA and stage to isolated harness
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mrf-g5-dna-tested"
+          (cd "$root" && sha256sum -c SHA256SUMS.txt)
+          test -s "$root/prometheus_mrf_synthetic_lab.dna"
+          cp "$root/prometheus_mrf_synthetic_lab.dna" experimental/mrf-kernel-lab/experimental_dna/
+          echo "G5_EXACT_DNA_SHA256=$(sha256sum "$root/prometheus_mrf_synthetic_lab.dna" | awk '{print $1}')"
+      - name: Build and run bounded TEST-only two-conductor remote get
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path experimental/mrf-kernel-lab/conductor_tests/Cargo.toml --test gate5_remote_action -- --nocapture --test-threads=1
