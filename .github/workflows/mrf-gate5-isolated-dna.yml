@@ -26,6 +26,8 @@ jobs:
       - name: Compile TEST-only integrity and coordinator WASM
         run: |
           set -euo pipefail
+          cargo generate-lockfile --manifest-path experimental/mrf-kernel-lab/zome_integrity_lab/Cargo.toml
+          cargo generate-lockfile --manifest-path experimental/mrf-kernel-lab/zome_coordinator_lab/Cargo.toml
           cargo build --manifest-path experimental/mrf-kernel-lab/zome_integrity_lab/Cargo.toml --locked --release --target wasm32-unknown-unknown
           cargo build --manifest-path experimental/mrf-kernel-lab/zome_coordinator_lab/Cargo.toml --locked --release --target wasm32-unknown-unknown
       - name: Download and check official Holochain CLI v0.6.1
