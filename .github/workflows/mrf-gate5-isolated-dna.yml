@@ -89,6 +89,7 @@ jobs:
     timeout-minutes: 40
     env:
       OPENSSL_NO_VENDOR: "1"
+      GH_TOKEN: ${{ github.token }}
       CARGO_BUILD_JOBS: "2"
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
@@ -112,17 +113,20 @@ jobs:
       - name: Build and run bounded TEST-only two-conductor remote get
         run: |
           set -euo pipefail
-          # Holochain v0.6.1 official lockfile pins this prerelease crypto chain.
-          # Newly resolved stable Ed25519/PKCS8 versions are source-incompatible
-          # with the 0.6.1 SweetConductor dependency tree. Pin TEST-only transitive
-          # dependencies, not the production or zome dependency graph.
+          # Seed this standalone SweetConductor test from the exact Holochain
+          # v0.6.1 release lock. Unpinned resolution pulled mutually incompatible
+          # stable crypto crates; opportunistic downgrades pulled a yanked DER.
+          # The upstream release lock contains the coherent dependency tuple.
           manifest=experimental/mrf-kernel-lab/conductor_tests/Cargo.toml
-          cargo generate-lockfile --manifest-path "$manifest"
-          cargo update --manifest-path "$manifest" -p ed25519@3.0.0 --precise 3.0.0-rc.4
-          cargo update --manifest-path "$manifest" -p signature@3.0.0 --precise 3.0.0-rc.10
-          cargo update --manifest-path "$manifest" -p pkcs8@0.11.0 --precise 0.11.0-rc.11
-          cargo update --manifest-path "$manifest" -p der@0.8.2 --precise 0.8.0
-          cargo test --manifest-path "$manifest" --locked --test gate5_remote_action -- --nocapture --test-threads=1
+          lock=experimental/mrf-kernel-lab/conductor_tests/Cargo.lock
+          gh api 'repos/holochain/holochain/contents/Cargo.lock?ref=3bdeaccd1c54fa351e76f7347601dfbc061d5bd4' --jq '.content' \
+            | tr -d '\n' | base64 -d > "$lock"
+          test "$(wc -c < "$lock")" -gt 200000
+          grep -A2 'name = "ed25519-dalek"' "$lock" | tail -8
+          echo "G5_UPSTREAM_HOLOCHAIN_061_LOCK_SHA256=$(sha256sum "$lock" | cut -d' ' -f1)"
+          # The test's smaller workspace may trim nonused upstream packages.
+          # Save the resulting resolved lockfile even if compilation fails.
+          cargo test --manifest-path "$manifest" --test gate5_remote_action -- --nocapture --test-threads=1
 
       - name: Archive TEST harness dependency lockfile for audit
         if: always()
