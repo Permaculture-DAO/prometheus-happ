@@ -94,9 +94,13 @@ class LedgerCheckpointTest(TestAtomicNonceStore):
 
     def test_checkpoint_forged_count_rejected(self):
         self.consume()
-        forged = dict(self.checkpoint(), row_count=0)
+        genuine = self.checkpoint()
+        # Model a genuine, previously approved independent checkpoint pin:
+        # do NOT re-pin a forged candidate to itself.
+        pinned_digest = sha256(canonical(genuine))
+        forged = dict(genuine, row_count=0)
         with self.assertRaisesRegex(PreflightRejected, "EXTERNAL_DIGEST_MISMATCH"):
-            self.audit(checkpoint=forged)
+            self.audit(checkpoint=forged, digest=pinned_digest)
 
     def test_checkpoint_wrong_reviewed_source_rejected(self):
         self.consume()
