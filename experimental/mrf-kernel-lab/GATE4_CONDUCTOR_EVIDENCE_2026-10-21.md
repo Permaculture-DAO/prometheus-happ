@@ -123,3 +123,24 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 Windows wrapper exit **0** at approximately 191.26s including compilation. This proves B can create locally despite A being initialized, but **not** that two sequential writes succeed or that A's entry can be fetched remotely by B.
 
 Falsifiable next step: reverse write order (B→A) on the same exact TEST DNA using `conductor_reverse_order.rs`; the outcome must be stated independently. If the second call stalls in both directions, investigate sequential two-conductor host/network scheduling rather than assuming a unique B defect; if only A→B stalls, investigate call-order dependencies. No scientific or financial authority is implied.
+
+
+## 2026-10-22: reverse-order falsification (B→A) — PASS
+
+A subsequent exact-DNA SweetConductor experiment, `conductor_reverse_order.rs`, deliberately **reversed the write order** without modifying the frozen TEST DNA SHA-256 `8f32a4bf0ca75f04649671cc6d5b73cecebdb0bd36a51fb58700f3837717abca`.
+
+Actual completed output:
+```text
+REVERSE_STAGE_INIT
+REVERSE_STAGE_PEER_INFO_PASS
+REVERSE_STAGE_B_FIRST_BEGIN
+REVERSE_STAGE_B_FIRST_PASS
+REVERSE_STAGE_A_SECOND_BEGIN
+REVERSE_STAGE_A_SECOND_PASS
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 202.70s
+```
+Outer Windows process **exit code 0** after approximately 254.67s including compile/startup. This demonstrates **two independent local writes to the same synthetic DNA on two SweetConductors can succeed, specifically for order B→A in this run**.
+
+The earlier A→B write-order harness terminated at `STAGE_B_CREATE_BEGIN` after A had succeeded, with a global timeout. The two results **refute a categorical hypothesis that every second writer is blocked**. They do not prove that the order is deterministically causal, that the test is repeatable, or that B has replicated or validated A's DHT record. Potential environmental/network timing and scheduler factors remain. Do not declare DHT replication or scientific truth proven.
+
+Next Gate 5 child branch introduces a **read-only, TEST-only network lookup by A's exact ActionHash**, to try B remote fetch **without B authoring a second receipt**. Its code and eventual tests must be reviewed and recorded as separate evidence.
