@@ -194,17 +194,21 @@ class RootEnrollmentTest(QuorumChainTest):
     def test_root_window_exceeds_limit(self):
         self.ready()
         self.anchor["expires_at_epoch"] = self.now + 5000
+        # An approved pin and fresh signature exercise the later time-window gate.
+        self.sign_anchor()
         self.rejects("INVALID_TIME_WINDOW")
 
     def test_root_duplicate_revoked_fingerprint(self):
         self.ready()
         v = self.reviewers[0]
         self.anchor["revoked_reviewer_pubkey_spki_sha256"] = [v, v]
+        self.sign_anchor()
         self.rejects("DUPLICATE_OR_UNSORTED_REVOCATIONS")
 
     def test_root_active_revoked_overlap_fails(self):
         self.ready()
         self.anchor["revoked_reviewer_pubkey_spki_sha256"] = [self.reviewers[0]]
+        self.sign_anchor()
         self.rejects("ACTIVE_REVOKED_OVERLAP")
 
     def test_root_revocation_and_rotation_to_two_active_reviewers(self):
