@@ -43,6 +43,8 @@ jobs:
           echo 'G53_TEST_FULL_QUORUM_CHECKPOINT_CHAIN=PASS'
           python3 -m unittest -v test_g53_root_enrollment.py
           echo 'G53_TEST_ROOT_ENROLLMENT_AND_REVOCATION=PASS'
+          python3 -m unittest -v test_g53_epoch_history.py
+          echo 'G53_TEST_MULTIEPOCH_HISTORICAL_SIGNER_POLICY=PASS'
 
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
