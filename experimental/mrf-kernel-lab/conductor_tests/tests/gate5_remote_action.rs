@@ -2,9 +2,23 @@
 //! The second conductor does not author the first agent's receipt.
 use holo_hash::ActionHash;
 use holochain::prelude::Record;
+use holochain_serialized_bytes::prelude::SerializedBytes;
 use holochain::sweettest::*;
 use std::path::PathBuf;
 use std::time::Duration;
+
+// Local, host-side schema mirror. This is a TEST decoder of the isolated
+// integrity-zome entry, not a new authoritative receipt definition.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, SerializedBytes)]
+struct TestReceipt {
+    subject_id: String,
+    evidence_class: String,
+    model_sha256: String,
+    input_i64: Vec<i64>,
+    output_i64: Vec<i64>,
+    authority: String,
+    financial_admission: bool,
+}
 
 fn test_receipt() -> serde_json::Value {
     serde_json::json!({
@@ -80,6 +94,17 @@ async fn test_gate5_remote_get_by_action_hash() {
     println!("G5_REMOTE_ACTION_HASH_MATCH=PASS");
     assert_eq!(record.action().author(), alice.agent_pubkey(), "G5_ACTION_AUTHOR_MISMATCH");
     println!("G5_AUTHOR_PROVENANCE=PASS");
+
+    // Strictly decode the recovered PUBLIC entry (not merely its ActionHash).
+    // Check all seven TEST fields, model digest, numerical outputs and the
+    // explicit no-financial-admission boundary against the exact input.
+    let decoded:TestReceipt=record.entry()
+        .to_app_option::<TestReceipt>()
+        .expect("G5_REMOTE_ENTRY_DECODE_ERROR")
+        .expect("G5_REMOTE_ENTRY_NOT_PRESENT");
+    let actual=serde_json::to_value(&decoded).expect("G5_REMOTE_ENTRY_JSON_ERROR");
+    assert_eq!(actual,test_receipt(),"G5_REMOTE_RECEIPT_CONTENT_MISMATCH");
+    println!("G5_REMOTE_RECEIPT_FIELDS_MATCH=PASS");
 
     // An independently constructed, validly typed but unissued action hash
     // must not resolve to an existing receipt on B. Keep the negative probe
