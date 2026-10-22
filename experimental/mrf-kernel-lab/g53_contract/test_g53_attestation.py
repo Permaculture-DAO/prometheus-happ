@@ -121,7 +121,7 @@ class G53SignedAttestationTest(unittest.TestCase):
 
     def test_duplicate_pubkey_pins_rejected(self):
         self.challenge["host_b_pubkey_sha256"] = self.challenge["host_a_pubkey_sha256"]
-        self.rejects("UNTRUSTED_PUBLIC_KEY_B")
+        self.rejects("DUPLICATE_SIGNER_KEY_PINS")
 
     def test_non_ed25519_key_rejected(self):
         rsa = self.root / "rsa-key.pem"

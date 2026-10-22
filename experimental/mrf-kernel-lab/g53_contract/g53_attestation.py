@@ -84,6 +84,13 @@ def validate_attestations(policy, a, b, challenge, *,
     need(0 < expires - issued <= MAX_VALIDITY_SECONDS, "ATTEST:TIME_WINDOW")
     now = int(time.time()) if now_epoch is None else now_epoch
     need(type(now) is int and issued <= now <= expires, "ATTEST:CHALLENGE_EXPIRED_OR_FUTURE")
+    # Reject a duplicated signing identity *before* any signature evaluation.
+    # This gives an unambiguous policy failure rather than a coincidental
+    # cryptographic error from a signature on a modified challenge.
+    for key in ("host_a_pubkey_sha256", "host_b_pubkey_sha256"):
+        sha(challenge[key], "ATTEST:PUBLIC_KEY_DIGEST")
+    need(challenge["host_a_pubkey_sha256"] != challenge["host_b_pubkey_sha256"],
+         "ATTEST:DUPLICATE_SIGNER_KEY_PINS")
     digests = []
     for role, host, pub, sig in (("A", a, pub_a, sig_a), ("B", b, pub_b, sig_b)):
         der = public_der(pub)
