@@ -165,7 +165,37 @@ jobs:
           echo "G5_UPSTREAM_HOLOCHAIN_061_LOCK_SHA256=$(sha256sum "$lock" | cut -d' ' -f1)"
           # The test's smaller workspace may trim nonused upstream packages.
           # Save the resulting resolved lockfile even if compilation fails.
-          cargo test --manifest-path "$manifest" --test gate5_remote_action -- --nocapture --test-threads=1
+          # G7.0: measured CI HOST baseline only; NOT an edge-node benchmark.
+          # GNU time maximum RSS is a process maximum, NOT aggregate cluster RSS.
+          # Preserve an auditable exit code even when the test fails.
+          test -x /usr/bin/time || { echo "::error::GNU time unavailable"; exit 1; }
+          metrics="$RUNNER_TEMP/g5-host-resource.env"
+          printf 'G7_SOURCE_SHA=%s\nG7_RUN_ID=%s\nG7_RUNNER_OS=%s\nG7_TEST_DNA_SHA256=%s\nG7_SCOPE=CI_HOST_NOT_EDGE\n' \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$RUNNER_OS" "$G5_EXPECTED_DNA_SHA256" > "$metrics"
+          test_exit=0
+          /usr/bin/time -f 'G7_ELAPSED_SECONDS=%e\nG7_MAX_SINGLE_PROCESS_RSS_KIB=%M\nG7_USER_CPU_SECONDS=%U\nG7_SYSTEM_CPU_SECONDS=%S' \
+            -o "$RUNNER_TEMP/g5-test-rusage.env" \
+            cargo test --manifest-path "$manifest" --test gate5_remote_action -- --nocapture --test-threads=1 \
+            || test_exit=$?
+          test -s "$RUNNER_TEMP/g5-test-rusage.env" || { echo "::error::Missing test resource measurements"; exit 1; }
+          cat "$RUNNER_TEMP/g5-test-rusage.env" | tee -a "$metrics"
+          printf 'G7_TEST_EXIT_CODE=%s\n' "$test_exit" | tee -a "$metrics"
+          test "$test_exit" -eq 0 || { echo "::error::MRF Gate-5 test failed; resource sample is NOT a PASS"; exit "$test_exit"; }
+          rss="$(awk -F= '$1=="G7_MAX_SINGLE_PROCESS_RSS_KIB" {print $2}' "$metrics")"
+          elapsed="$(awk -F= '$1=="G7_ELAPSED_SECONDS" {print $2}' "$metrics")"
+          [[ "$rss" =~ ^[0-9]+$ ]] && (( rss > 0 )) || { echo "::error::Invalid RSS measurement"; exit 1; }
+          awk -v elapsed="$elapsed" 'BEGIN { exit !(elapsed + 0 > 0) }' \
+            || { echo "::error::Invalid elapsed measurement"; exit 1; }
+          echo "G7_HOST_CI_RESOURCE_BASELINE_RECORDED=PASS"
+
+      - name: Archive TEST host resource observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mrf-gate5-ci-host-resource-observations
+          if-no-files-found: warn
+          retention-days: 7
+          path: ${{ runner.temp }}/g5-host-resource.env
 
       - name: Archive TEST harness dependency lockfile for audit
         if: always()
