@@ -99,3 +99,27 @@ The outer `timeout 280s cargo test --offline --locked --test two_conductors -- -
 Host volume C had ~8.991 GiB free during the run; D ~0.634 GiB. No host data or production DNA changes. Follow-up targeted `conductor_b_only.rs` isolates B's creation with conductor A initialized but deliberately idle; **its result must be recorded separately** before interpreting whether sequential writes are causal.
 
 **Remaining Gate-5 review:** distinguish entry author-local success, host runtime reentrancy/blocking, Holochain DHT authority integration, secondary agent validation and remote fetch. No REAL persistence, Canon promotion, oracle authenticity or capital authority.
+
+
+## Milestone 2026-10-22 — isolated second-conductor differential diagnosis
+
+Latest two-conductor sequence harness `two_conductors.rs` ran on the exact SHA-pinned TEST DNA with instrumented stage markers. Actual observed:
+```text
+PEER_INFO_EXCHANGE=PASS
+STAGE_A_CREATE_BEGIN
+STAGE_A_CREATE_PASS
+STAGE_B_CREATE_BEGIN
+```
+The overall process ended with timeout/exit 1 at 291.59s; there was **no** `STAGE_B_CREATE_PASS`. Host C remained near 9 GiB free; no evidence of disk exhaustion during that run.
+
+A **new differential test** `conductor_b_only.rs` initialized two distinct conductors and exchanged peer info, but left A idle, calling CREATE only on B. Actual output:
+```text
+B_ONLY_STAGE_INIT_BEGIN
+B_ONLY_STAGE_DISCOVERY_PASS
+B_ONLY_STAGE_B_CREATE_BEGIN
+B_ONLY_STAGE_B_CREATE_PASS
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 117.40s
+```
+Windows wrapper exit **0** at approximately 191.26s including compilation. This proves B can create locally despite A being initialized, but **not** that two sequential writes succeed or that A's entry can be fetched remotely by B.
+
+Falsifiable next step: reverse write order (B→A) on the same exact TEST DNA using `conductor_reverse_order.rs`; the outcome must be stated independently. If the second call stalls in both directions, investigate sequential two-conductor host/network scheduling rather than assuming a unique B defect; if only A→B stalls, investigate call-order dependencies. No scientific or financial authority is implied.
