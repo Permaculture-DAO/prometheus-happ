@@ -26,3 +26,11 @@ pub fn attempt_delete_receipt(action_hash: ActionHash) -> ExternResult<ActionHas
     // This path is intentionally exposed ONLY in a TEST DNA to prove denial.
     delete_entry(action_hash)
 }
+
+
+/// TEST-only, cross-agent read adapter. No model validation claim is inferred
+/// from a successful read: DHT receipt validation is a separate gate.
+#[hdk_extern]
+pub fn get_synthetic_receipt_by_action(action_hash: ActionHash) -> ExternResult<Option<Record>> {
+    get(action_hash, GetOptions::default())
+}
