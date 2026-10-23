@@ -17,6 +17,7 @@ from g53_preflight import keys, need, sha
 from g53_root_enrollment import (GENESIS, SCHEMA as ROOT_SCHEMA,
                                  enrollment_head, enrollment_message,
                                  MAX_ISSUE_WINDOW_SECONDS)
+from g53_root_rotation import verify_root_handover_history
 
 MAX_EPOCHS = 8
 MAX_RECORDS = 32
@@ -37,7 +38,9 @@ def verify_historical_epoch_chain(
         externally_pinned_latest_epoch,
         independently_approved_source_sha256,
         independently_approved_authorization_ref,
-        now_epoch=None):
+        now_epoch=None,
+        root_rotations=None,
+        externally_pinned_latest_root_key_sha256=None):
     """Verify historical epoch policies and original signatures WITHOUT rewriting.
 
     Root public keys and terminal head/epoch are presumed independently
@@ -61,16 +64,31 @@ def verify_historical_epoch_chain(
     need(type(root_public_pems) is dict and
          type(reviewer_public_pems) is dict,
          "G53_EPOCH:KEY_MAP_INVALID")
-    roots = externally_pinned_root_key_sha256
-    need(type(roots) is list and 2 <= len(roots) <= 8,
-         "G53_EPOCH:INVALID_ROOT_SET")
-    for root in roots:
-        sha(root, "G53_EPOCH:ROOT_FINGERPRINT")
-    need(roots == sorted(set(roots)) and set(root_public_pems) == set(roots),
-         "G53_EPOCH:ROOT_SET_MISMATCH")
-    for root, pem in root_public_pems.items():
-        need(sha256(public_der(Path(pem))) == root,
-             "G53_EPOCH:ROOT_KEY_MISMATCH")
+    original_roots = externally_pinned_root_key_sha256
+    if root_rotations is None:
+        need(externally_pinned_latest_root_key_sha256 is None,
+             "G53_EPOCH:UNVERIFIED_ROOT_ROTATION_INPUT")
+        need(type(original_roots) is list and 2 <= len(original_roots) <= 8,
+             "G53_EPOCH:INVALID_ROOT_SET")
+        for root in original_roots:
+            sha(root, "G53_EPOCH:ROOT_FINGERPRINT")
+        need(original_roots == sorted(set(original_roots)) and
+             set(root_public_pems) == set(original_roots),
+             "G53_EPOCH:ROOT_SET_MISMATCH")
+        for root, pem in root_public_pems.items():
+            need(sha256(public_der(Path(pem))) == root,
+                 "G53_EPOCH:ROOT_KEY_MISMATCH")
+        roots_by_epoch = [original_roots] * len(epochs)
+    else:
+        # Root sets change ONLY after outgoing and incoming quorums verify
+        # a linked, source-bound TEST handover statement per epoch.
+        roots_by_epoch = verify_root_handover_history(
+            epochs, root_rotations,
+            genesis_root_fingerprints=original_roots,
+            latest_root_fingerprints=externally_pinned_latest_root_key_sha256,
+            root_public_pems=root_public_pems,
+            reviewed_source_sha256=independently_approved_source_sha256,
+            authorization_ref=independently_approved_authorization_ref)
 
     now = int(time.time()) if now_epoch is None else now_epoch
     need(type(now) is int and now > 0, "G53_EPOCH:NOW_INVALID")
@@ -84,6 +102,7 @@ def verify_historical_epoch_chain(
     terminal_checkpoint = None
 
     for number, epoch in enumerate(epochs, start=1):
+        roots = roots_by_epoch[number-1]
         keys(epoch, ["anchor", "root_endorsements", "registry", "records"],
              "G53_EPOCH:ENVELOPE")
         anchor = epoch["anchor"]
@@ -251,6 +270,8 @@ def verify_historical_epoch_chain(
         "G53_TEST_MULTIEPOCH_HISTORICAL_SIGNATURES=PASS",
         "G53_TEST_TEMPORAL_REVOCATION_ENFORCEMENT=PASS",
         "G53_TEST_LINKED_ROOT_AND_CHECKPOINT_CHAINS=PASS",
+        ("G53_TEST_ROOT_KEY_DUAL_QUORUM_HANDOVER=PASS" if root_rotations is not None
+         else "G53_TEST_ROOT_KEY_DUAL_QUORUM_HANDOVER=NOT_TESTED"),
         "G53_EXTERNAL_ROOT_PIN_AUTHENTICITY=NOT_PROVEN",
         "G53_ACTUAL_REVIEWER_INDEPENDENCE=NOT_PROVEN",
         "G53_DISTRIBUTED_CONSENSUS=NOT_PROVEN",

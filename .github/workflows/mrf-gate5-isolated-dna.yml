@@ -45,6 +45,8 @@ jobs:
           echo 'G53_TEST_ROOT_ENROLLMENT_AND_REVOCATION=PASS'
           python3 -m unittest -v test_g53_epoch_history.py
           echo 'G53_TEST_MULTIEPOCH_HISTORICAL_SIGNER_POLICY=PASS'
+          python3 -m unittest -v test_g53_root_rotation.py
+          echo 'G53_TEST_DUAL_ROOT_HANDOVER_AND_HISTORIC_SIGNATURES=PASS'
 
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
