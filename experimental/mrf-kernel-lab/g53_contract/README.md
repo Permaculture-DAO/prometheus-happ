@@ -162,3 +162,14 @@ The new offline module g53_custody_preclearance.py rejects missing or altered en
 ## G5.3 — Per-custodian signed TEST publication records
 
 See G53_INDEPENDENT_PUBLICATION_VERIFICATION_PROTOCOL.md for the mandatory physical admission and independent retrieval requirements. `g53_publication_signoff.py` cryptographically verifies a separate domain-separated Ed25519 signed publication record for EACH test custodian. Each record must be canonical JSON and binds the originally pinned publication raw bytes, witness head/round, nonce, publication channel, custodian key, monotonically expected publication sequence, predecessor head and session timestamp. The verifier reruns the prior complete TEST-only custody/history validation, and requires caller-provided externally expected publication-head/sequence/predecessor pins for each custodian. The unit fixtures use temporary fictional keys and locally written files; **NO actual external publication channel is contacted**. A matching signature is NOT proof of publication origin, external custody, independently enrolled human operators, clock provenance, globally unique latest head, or anti-equivocation. Successful simulation always reports `G53_GO_NO_GO=HOLD_PENDING_INDEPENDENT_REVIEW`. No production changes.
+
+
+## G5.3 — Real custodian onboarding / independently observed evidence (physical HOLD)
+
+Three controlled engagement/decision assets were added without touching executable TEST code:
+
+- `G53_REAL_CUSTODIAN_ONBOARDING_BRIEF_v1_0.md`: two real custodians' identity/key/publication requirements, third-party reviewer, separate hosting/administrative domains and bounded TEST-only candidate-engagement language. Potential transparent timestamp services are listed as *supplementary artifacts*, never substitutes for independent people or publication channels.
+- `G53_EXTERNAL_EVIDENCE_REGISTER_v1.json`: 18 explicitly `NOT_OBSERVED` external evidence gates and null primary-source/reviewer references. This is a missing-evidence register; do not treat any claimed value as independently authenticated without the original separately received evidence.
+- `G53_REAL_EVIDENCE_ADMISSION_DECISION_2026-10-23.md`: evidence precedence from `PROMETHEUS_AUTHORITY_LATTICE_v1_0.yaml`, baseline CI and device observations, staged external acquisition, external approval barriers and physical/G5.4 HOLD decision.
+
+**This documentation milestone is NOT external onboarding**: NO real custodian was contacted or enrolled, NO external signed publication was independently fetched, NO physical two-host evidence was obtained, and NO reviewer issued GO. Keep this PR draft. Do not merge, deploy, reconfigure WSL/host, open REAL persistence, amend Canon or promote test-only signatures as institutional certifications.
