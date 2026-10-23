@@ -10,7 +10,52 @@ on:
       - ".github/workflows/mrf-gate5-isolated-dna.yml"
 permissions:
   contents: read
+# Exact synthetic-only release-candidate bytes observed on independent CI runners.
+# Changing the laboratory DNA/zomes requires a separately reviewed hash update.
+env:
+  G5_EXPECTED_COORDINATOR_SHA256: f490b2f89eb810de9913a5c8bd153402567032f2ba6c43f1109cf58c9064af7f
+  G5_EXPECTED_INTEGRITY_SHA256: 633e905171d133a204c3bfca3e8ee15794c80676d22631c68c7d9f4dd9cb8581
+  G5_EXPECTED_DNA_SHA256: 739d1fb6ffb1f61de14c187a27f926366ba9ed88fdd2057b72503c871ebc779f
+  G5_EXPECTED_UPSTREAM_LOCK_SHA256: 294832bbea633e68b49fb2c97b841da214118f7672f78bd314600d1002c64464
 jobs:
+  g53-manifest-contract-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate G5.3 fail-closed TEST manifest contract (no host access)
+        run: |
+          set -euo pipefail
+          cd experimental/mrf-kernel-lab/g53_contract
+          python3 -m unittest -v test_g53_preflight.py
+          echo 'G53_SCHEMA_NEGATIVE_TESTS=PASS'
+          python3 -m unittest -v test_g53_attestation.py
+          echo 'G53_EPHEMERAL_ED25519_NEGATIVE_TESTS=PASS'
+          python3 -m unittest -v test_g53_witness_audit.py
+          echo 'G53_TEST_WITNESS_AND_NONCE_SNAPSHOT_TESTS=PASS'
+          python3 -m unittest -v test_g53_nonce_store.py
+          echo 'G53_TEST_LOCAL_ATOMIC_NONCE_AND_REPLAY=PASS'
+          python3 -m unittest -v test_g53_ledger_checkpoint.py
+          echo 'G53_TEST_EXTERNALLY_PINNED_LEDGER_CHECKPOINT=PASS'
+          python3 -m unittest -v test_g53_checkpoint_witness.py
+          echo 'G53_TEST_SIGNED_SEQUENTIAL_CHECKPOINT_WITNESS=PASS'
+          python3 -m unittest -v test_g53_checkpoint_quorum.py
+          echo 'G53_TEST_FULL_QUORUM_CHECKPOINT_CHAIN=PASS'
+          python3 -m unittest -v test_g53_root_enrollment.py
+          echo 'G53_TEST_ROOT_ENROLLMENT_AND_REVOCATION=PASS'
+          python3 -m unittest -v test_g53_epoch_history.py
+          echo 'G53_TEST_MULTIEPOCH_HISTORICAL_SIGNER_POLICY=PASS'
+          python3 -m unittest -v test_g53_root_rotation.py
+          echo 'G53_TEST_DUAL_ROOT_HANDOVER_AND_HISTORIC_SIGNATURES=PASS'
+          python3 -m unittest -v test_g53_external_witness.py
+          echo 'G53_TEST_TWO_WITNESS_HISTORY_COMMITMENTS=PASS'
+          python3 -m unittest -v test_g53_custody_preclearance.py
+          echo 'G53_TEST_CUSTODY_PRECLEARANCE_OFFLINE_PACKETS=PASS'
+          python3 -m unittest -v test_g53_publication_signoff.py
+          echo 'G53_TEST_CUSTODIAN_SIGNED_PUBLICATION_SIGNOFFS=PASS'
+          python3 -m unittest -v test_g53_real_evidence_gate.py
+          echo 'G53_REAL_EVIDENCE_REGISTER_FAIL_CLOSED_INSPECTION=PASS'
+
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
@@ -69,6 +114,27 @@ jobs:
           cp experimental/mrf-kernel-lab/zome_integrity_lab/Cargo.lock "$root/integrity_Cargo.lock"
           cp experimental/mrf-kernel-lab/zome_coordinator_lab/Cargo.lock "$root/coordinator_Cargo.lock"
           cat "$root/SHA256SUMS.txt"
+          # This is an independent, source-controlled pin, not just a
+          # checksum generated beside the artifact in this same CI run.
+          (cd "$root" && printf '%s  %s\n' \
+            "$G5_EXPECTED_COORDINATOR_SHA256" "wasm/prometheus_mrf_coordinator_lab.wasm" \
+            "$G5_EXPECTED_INTEGRITY_SHA256" "wasm/prometheus_mrf_integrity_lab.wasm" \
+            "$G5_EXPECTED_DNA_SHA256" "prometheus_mrf_synthetic_lab.dna" \
+            | sha256sum -c -) || { echo "::error::Synthetic Gate-5 pinned DNA/WASM digest changed; FAIL CLOSED"; exit 1; }
+          echo "G5_PINNED_DNA_AND_WASM_DIGESTS=PASS"
+          # Negative control on a disposable copy, NEVER on the tested DNA:
+          # a one-byte artifact mutation must be rejected by the same pin.
+          tampered="$RUNNER_TEMP/g5-tamper-probe.dna"
+          cp "$root/prometheus_mrf_synthetic_lab.dna" "$tampered"
+          printf 'X' >> "$tampered"
+          if printf '%s  %s\n' "$G5_EXPECTED_DNA_SHA256" "$tampered" \
+            | sha256sum -c - > "$RUNNER_TEMP/g5-negative-check.log" 2>&1; then
+            echo "::error::DNA digest guard accepted deliberately mutated bytes"
+            exit 1
+          fi
+          grep -Fq ': FAILED' "$RUNNER_TEMP/g5-negative-check.log" \
+            || { echo "::error::DNA mutation check failed for an unrelated reason"; exit 1; }
+          echo "G5_TAMPERED_DNA_REJECTED=PASS"
       - uses: actions/upload-artifact@v4
         with:
           name: mrf-gate5-new-dna-TEST-only
@@ -107,6 +173,14 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/mrf-g5-dna-tested"
           (cd "$root" && sha256sum -c SHA256SUMS.txt)
+          # This is an independent, source-controlled pin, not just a
+          # checksum generated beside the artifact in this same CI run.
+          (cd "$root" && printf '%s  %s\n' \
+            "$G5_EXPECTED_COORDINATOR_SHA256" "wasm/prometheus_mrf_coordinator_lab.wasm" \
+            "$G5_EXPECTED_INTEGRITY_SHA256" "wasm/prometheus_mrf_integrity_lab.wasm" \
+            "$G5_EXPECTED_DNA_SHA256" "prometheus_mrf_synthetic_lab.dna" \
+            | sha256sum -c -) || { echo "::error::Synthetic Gate-5 pinned DNA/WASM digest changed; FAIL CLOSED"; exit 1; }
+          echo "G5_PINNED_DNA_AND_WASM_DIGESTS=PASS"
           test -s "$root/prometheus_mrf_synthetic_lab.dna"
           cp "$root/prometheus_mrf_synthetic_lab.dna" experimental/mrf-kernel-lab/experimental_dna/
           echo "G5_EXACT_DNA_SHA256=$(sha256sum "$root/prometheus_mrf_synthetic_lab.dna" | awk '{print $1}')"
@@ -122,11 +196,104 @@ jobs:
           gh api 'repos/holochain/holochain/contents/Cargo.lock?ref=3bdeaccd1c54fa351e76f7347601dfbc061d5bd4' --jq '.content' \
             | tr -d '\n' | base64 -d > "$lock"
           test "$(wc -c < "$lock")" -gt 200000
+          printf '%s  %s\n' "$G5_EXPECTED_UPSTREAM_LOCK_SHA256" "$lock" | sha256sum -c - \
+            || { echo "::error::Pinned Holochain upstream Cargo.lock mismatch; FAIL CLOSED"; exit 1; }
+          echo "G5_PINNED_UPSTREAM_CARGO_LOCK=PASS"
           grep -A2 'name = "ed25519-dalek"' "$lock" | tail -8
           echo "G5_UPSTREAM_HOLOCHAIN_061_LOCK_SHA256=$(sha256sum "$lock" | cut -d' ' -f1)"
           # The test's smaller workspace may trim nonused upstream packages.
           # Save the resulting resolved lockfile even if compilation fails.
-          cargo test --manifest-path "$manifest" --test gate5_remote_action -- --nocapture --test-threads=1
+          # G7.0: measured CI HOST baseline only; NOT an edge-node benchmark.
+          # GNU time maximum RSS is a process maximum, NOT aggregate cluster RSS.
+          # Preserve an auditable exit code even when the test fails.
+          test -x /usr/bin/time || { echo "::error::GNU time unavailable"; exit 1; }
+          metrics="$RUNNER_TEMP/g5-host-resource.env"
+          printf 'G7_SOURCE_SHA=%s\nG7_RUN_ID=%s\nG7_RUNNER_OS=%s\nG7_TEST_DNA_SHA256=%s\nG7_SCOPE=CI_HOST_NOT_EDGE\n' \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$RUNNER_OS" "$G5_EXPECTED_DNA_SHA256" > "$metrics"
+          test_exit=0
+          /usr/bin/time -f 'G7_ELAPSED_SECONDS=%e\nG7_MAX_SINGLE_PROCESS_RSS_KIB=%M\nG7_USER_CPU_SECONDS=%U\nG7_SYSTEM_CPU_SECONDS=%S' \
+            -o "$RUNNER_TEMP/g5-test-rusage.env" \
+            cargo test --manifest-path "$manifest" --test gate5_remote_action -- --nocapture --test-threads=1 2>&1 \
+            | tee "$RUNNER_TEMP/g5-test-stage-trace.log" \
+            || test_exit=$?
+          test -s "$RUNNER_TEMP/g5-test-rusage.env" || { echo "::error::Missing test resource measurements"; exit 1; }
+          cat "$RUNNER_TEMP/g5-test-rusage.env" | tee -a "$metrics"
+          printf 'G7_TEST_EXIT_CODE=%s\n' "$test_exit" | tee -a "$metrics"
+          test "$test_exit" -eq 0 || { echo "::error::MRF Gate-5 test failed; resource sample is NOT a PASS"; exit "$test_exit"; }
+          # Monotonic per-direction CI timings include retry/payload verification, not just transport latency.
+          for metric in G7_CI_HOST_READ_A_TO_B_MS G7_CI_HOST_READ_B_TO_A_MS G7_CI_HOST_TEST_WALL_MS; do
+            values="$(grep -oE "$metric=[0-9]+" "$RUNNER_TEMP/g5-test-stage-trace.log" || true)"
+            count="$(printf '%s\n' "$values" | grep -c . || true)"
+            [[ "$count" == 1 ]] || { echo "::error::Missing or duplicate stage timing $metric"; exit 1; }
+            printf '%s\n' "$values" | tee -a "$metrics"
+          done
+          # Five successful repeated same-runner reads per direction, never synthetic SLO evidence.
+          for sample in 1 2 3 4 5; do
+            for direction in A_TO_B B_TO_A; do
+              metric="G7_CI_HOST_WARM_${direction}_${sample}_MS"
+              values="$(grep -oE "$metric=[0-9]+" "$RUNNER_TEMP/g5-test-stage-trace.log" || true)"
+              count="$(printf '%s\n' "$values" | grep -c . || true)"
+              [[ "$count" == 1 ]] || { echo "::error::Missing/duplicate warm sample $metric"; exit 1; }
+              printf '%s\n' "$values" | tee -a "$metrics"
+            done
+          done
+          grep -Fq "G7_CI_HOST_WARM_SAMPLE_COUNT=10" "$RUNNER_TEMP/g5-test-stage-trace.log" \
+            || { echo "::error::Repeated read count invariant failed"; exit 1; }
+          echo "G7_CI_HOST_WARM_READ_SAMPLE_EXTRACTION=PASS"
+          # Descriptive ONLY: n=5 correlated same-runner observations each way.
+          # No arbitrary thresholds, SLO, percentile inference or edge claim.
+          python3 - "$metrics" <<'PY'
+          import pathlib
+          import statistics
+          import sys
+          
+          path = pathlib.Path(sys.argv[1])
+          values = {}
+          for line in path.read_text(encoding="utf-8").splitlines():
+              if "=" not in line:
+                  continue
+              name, value = line.split("=", 1)
+              values.setdefault(name, []).append(value)
+          
+          rows = []
+          for direction in ("A_TO_B", "B_TO_A"):
+              prefix = f"G7_CI_HOST_WARM_{direction}_"
+              samples = []
+              for i in range(1, 6):
+                  key = f"{prefix}{i}_MS"
+                  found = values.get(key, [])
+                  if len(found) != 1 or not found[0].isdigit():
+                      raise SystemExit(f"G7_INVALID_OR_DUPLICATE_SAMPLE:{key}")
+                  samples.append(int(found[0]))
+              if len(samples) != 5:
+                  raise SystemExit("G7_WRONG_SAMPLE_COUNT")
+              for stat_name, val in (
+                  ("MIN", min(samples)),
+                  ("MEDIAN", int(statistics.median(samples))),
+                  ("MAX", max(samples)),
+              ):
+                  rows.append(f"G7_CI_HOST_WARM_{direction}_{stat_name}_MS={val}")
+          with path.open("a", encoding="utf-8") as out:
+              out.write("\n".join(rows) + "\n")
+          for row in rows:
+              print(row)
+          print("G7_DESCRIPTIVE_WARM_STATS=PASS")
+          PY
+          rss="$(awk -F= '$1=="G7_MAX_SINGLE_PROCESS_RSS_KIB" {print $2}' "$metrics")"
+          elapsed="$(awk -F= '$1=="G7_ELAPSED_SECONDS" {print $2}' "$metrics")"
+          [[ "$rss" =~ ^[0-9]+$ ]] && (( rss > 0 )) || { echo "::error::Invalid RSS measurement"; exit 1; }
+          awk -v elapsed="$elapsed" 'BEGIN { exit !(elapsed + 0 > 0) }' \
+            || { echo "::error::Invalid elapsed measurement"; exit 1; }
+          echo "G7_HOST_CI_RESOURCE_BASELINE_RECORDED=PASS"
+
+      - name: Archive TEST host resource observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mrf-gate5-ci-host-resource-observations
+          if-no-files-found: warn
+          retention-days: 7
+          path: ${{ runner.temp }}/g5-host-resource.env
 
       - name: Archive TEST harness dependency lockfile for audit
         if: always()
