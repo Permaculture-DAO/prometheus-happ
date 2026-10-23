@@ -51,6 +51,8 @@ jobs:
           echo 'G53_TEST_TWO_WITNESS_HISTORY_COMMITMENTS=PASS'
           python3 -m unittest -v test_g53_custody_preclearance.py
           echo 'G53_TEST_CUSTODY_PRECLEARANCE_OFFLINE_PACKETS=PASS'
+          python3 -m unittest -v test_g53_publication_signoff.py
+          echo 'G53_TEST_CUSTODIAN_SIGNED_PUBLICATION_SIGNOFFS=PASS'
 
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
