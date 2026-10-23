@@ -173,3 +173,8 @@ Three controlled engagement/decision assets were added without touching executab
 - `G53_REAL_EVIDENCE_ADMISSION_DECISION_2026-10-23.md`: evidence precedence from `PROMETHEUS_AUTHORITY_LATTICE_v1_0.yaml`, baseline CI and device observations, staged external acquisition, external approval barriers and physical/G5.4 HOLD decision.
 
 **This documentation milestone is NOT external onboarding**: NO real custodian was contacted or enrolled, NO external signed publication was independently fetched, NO physical two-host evidence was obtained, and NO reviewer issued GO. Keep this PR draft. Do not merge, deploy, reconfigure WSL/host, open REAL persistence, amend Canon or promote test-only signatures as institutional certifications.
+
+
+## G5.3 — External evidence admission inspector (physical HOLD)
+
+See `G53_REAL_EVIDENCE_ADMISSION_INSPECTOR_PROTOCOL.md` and `g53_real_evidence_gate.py`. The strict read-only offline inspector checks 18 ordered evidence requirements against a caller-provided canonical digest, requires valid claim/source/reviewer fields with UTC review/expiry for a *claimed* independent review, rejects changed authority/REAL/HOLD boundaries and expired documentary claims, and emits a machine-readable `HOLD_PENDING_INDEPENDENT_REVIEW` result. A zero CLI exit status means the registry was inspectable, **not** a GO. Even with 18 fictitious completed reviews it returns `CLAIMED_COMPLETE_UNAUTHENTICATED` only. The tool never visits custodian endpoints or authenticates source/identity/clock/key trust. Do not substitute its CI PASS for independently acquired external evidence or physical host attestation.

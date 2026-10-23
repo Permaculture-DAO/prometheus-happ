@@ -53,6 +53,8 @@ jobs:
           echo 'G53_TEST_CUSTODY_PRECLEARANCE_OFFLINE_PACKETS=PASS'
           python3 -m unittest -v test_g53_publication_signoff.py
           echo 'G53_TEST_CUSTODIAN_SIGNED_PUBLICATION_SIGNOFFS=PASS'
+          python3 -m unittest -v test_g53_real_evidence_gate.py
+          echo 'G53_REAL_EVIDENCE_REGISTER_FAIL_CLOSED_INSPECTION=PASS'
 
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
