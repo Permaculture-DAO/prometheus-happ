@@ -47,6 +47,8 @@ jobs:
           echo 'G53_TEST_MULTIEPOCH_HISTORICAL_SIGNER_POLICY=PASS'
           python3 -m unittest -v test_g53_root_rotation.py
           echo 'G53_TEST_DUAL_ROOT_HANDOVER_AND_HISTORIC_SIGNATURES=PASS'
+          python3 -m unittest -v test_g53_external_witness.py
+          echo 'G53_TEST_TWO_WITNESS_HISTORY_COMMITMENTS=PASS'
 
   pack-isolated-test-dna:
     runs-on: ubuntu-24.04
